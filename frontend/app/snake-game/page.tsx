@@ -45,12 +45,10 @@ export default function SnakeGamePage() {
     // Initial emotion capture after a short delay
     initialTimeoutRef.current = setTimeout(() => {
       captureEmotionForUpdate()
-    }, 2000)
-
-    // Set up interval for emotion detection every 15 seconds
+    }, 2000)    // Set up interval for emotion detection every 10 seconds
     emotionIntervalRef.current = setInterval(() => {
       captureEmotionForUpdate()
-    }, 15000)
+    }, 10000)
   }
 
   // Function to stop emotion detection
@@ -66,7 +64,6 @@ export default function SnakeGamePage() {
       initialTimeoutRef.current = null
     }
   }
-
   // Handle game status changes
   const handleGameStatusChange = (status: GameStatus) => {
     console.log(`Game status changed: ${status}`)
@@ -76,6 +73,14 @@ export default function SnakeGamePage() {
       startEmotionDetection()
     } else {
       stopEmotionDetection()
+    }
+  }
+
+  // Handle emotion updates from the game component
+  const handleEmotionUpdate = (emotion: string) => {
+    console.log(`Received emotion update from game: ${emotion}`)
+    if (emotion in emotionGradients && emotion !== 'surprised') {
+      setBackgroundEmotion(emotion)
     }
   }
   // Function to capture emotion for both background and difficulty update
@@ -115,18 +120,30 @@ export default function SnakeGamePage() {
     } finally {
       setIsProcessingEmotion(false)
     }  }
-    // Apply background gradient when emotion changes
+  
+  // Apply background gradient when emotion changes
   useEffect(() => {
+    console.log(`Background emotion changing to: ${backgroundEmotion}`)
+    
     // Remove any existing emotion classes
-    const emotionClasses = ['emotion-frustration', 'emotion-sadness', 'emotion-anger', 'emotion-fear', 'emotion-neutral', 'emotion-happy']
+    const emotionClasses = ['emotion-frustration', 'emotion-sadness', 'emotion-anger', 'emotion-fear', 'emotion-neutral', 'emotion-happy', 'no-emotion-background']
     emotionClasses.forEach(className => {
       document.body.classList.remove(className)
     })
+    
+    // Force remove any inline styles that might interfere
+    document.body.style.background = ''
+    document.body.style.backgroundImage = ''
+    document.body.style.backgroundSize = ''
+    document.body.style.animation = ''
     
     // Add the new emotion class
     const emotionClass = `emotion-${backgroundEmotion}`
     document.body.classList.add(emotionClass)
     console.log(`Applied background class: ${emotionClass}`)
+    
+    // Force reflow to ensure styles are applied
+    document.body.offsetHeight
     
     // Cleanup function to remove emotion classes on unmount
     return () => {
@@ -136,9 +153,11 @@ export default function SnakeGamePage() {
       document.body.classList.add('no-emotion-background')
     }
   }, [backgroundEmotion])
-
-  // Cleanup emotion detection on unmount
+  // Cleanup emotion detection on unmount and initialize default background
   useEffect(() => {
+    // Set default background on mount
+    setBackgroundEmotion("neutral")
+    
     return () => {
       stopEmotionDetection()
     }
@@ -219,7 +238,7 @@ export default function SnakeGamePage() {
               
               {/* Content */}
               <div className="relative z-10">
-                <SnakeGame onGameStatusChange={handleGameStatusChange} />
+                <SnakeGame onGameStatusChange={handleGameStatusChange} onEmotionUpdate={handleEmotionUpdate} />
               </div>
             </div>
             

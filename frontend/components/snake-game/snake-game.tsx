@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button"
 import { gameApiService, type EmotionData } from "../../lib/game-api"
 import { Difficulty } from "@/components/snake-game/word-lists"
 
-interface SnakeGameProps {
+interface SnakeGameComponentProps {
   onGameStatusChange?: (status: GameStatus) => void
+  onEmotionUpdate?: (emotion: string) => void
 }
 
-export function SnakeGame({ onGameStatusChange }: SnakeGameProps) {
+export function SnakeGame({ onGameStatusChange, onEmotionUpdate }: SnakeGameComponentProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [showLifeLossPopup, setShowLifeLossPopup] = useState<boolean>(false)
   const [showEmotionDetection, setShowEmotionDetection] = useState<boolean>(false)
@@ -21,7 +22,6 @@ export function SnakeGame({ onGameStatusChange }: SnakeGameProps) {
   
   // For now, use a placeholder user ID. In a real app, this would come from authentication
   const userId = "user123"
-
   const { 
     gameStatus, 
     lives, 
@@ -34,25 +34,11 @@ export function SnakeGame({ onGameStatusChange }: SnakeGameProps) {
     pauseGame, 
     resumeGame   } = useSnakeGame({
     canvasRef,
-    userId,
     onLifeLoss: () => {
       setShowLifeLossPopup(true)
       setTimeout(() => setShowLifeLossPopup(false), 2000)
-    },
-    onEmotionDetected: (emotion: EmotionData) => {
-      setCurrentEmotion(emotion.emotion)
-      console.log(`Emotion detected: ${emotion.emotion} (${emotion.confidence})`)
-    },
-    onRoundComplete: async (word: string, timeTaken: number, emotion: EmotionData, nextDifficulty: Difficulty) => {
-      setCurrentDifficulty(nextDifficulty)
-      console.log(`Round completed! Word: ${word}, Time: ${timeTaken}s, Emotion: ${emotion.emotion}, Next difficulty: ${nextDifficulty}`)
-      
-      // Show emotion detection feedback
-      setShowEmotionDetection(true)
-      setTimeout(() => setShowEmotionDetection(false), 2000)
     }
   })
-
   // Function to capture emotion for completed round
   const captureEmotionForRound = async () => {
     if (isCapturingEmotion) return
@@ -62,6 +48,9 @@ export function SnakeGame({ onGameStatusChange }: SnakeGameProps) {
       const emotion = await gameApiService.captureAndDetectEmotion()
       setCurrentEmotion(emotion.emotion)
       console.log(`Captured emotion: ${emotion.emotion} with confidence ${emotion.confidence}`)
+      
+      // Notify parent component about the emotion update
+      onEmotionUpdate?.(emotion.emotion)
     } catch (error) {
       console.error('Failed to capture emotion:', error)
     } finally {
@@ -74,11 +63,19 @@ export function SnakeGame({ onGameStatusChange }: SnakeGameProps) {
       setCurrentDifficulty(difficulty)
     }
   }, [difficulty])
-
   // Notify parent when game status changes
   useEffect(() => {
     onGameStatusChange?.(gameStatus)
   }, [gameStatus, onGameStatusChange])
+
+  // Trigger emotion capture when only one letter is left to collect
+  useEffect(() => {
+    const lettersLeft = targetWord.length - collectedLetters.length
+    if (lettersLeft === 1 && gameStatus === GameStatus.PLAYING && !isCapturingEmotion) {
+      console.log('Only one letter left - triggering emotion capture for difficulty adjustment')
+      captureEmotionForRound()
+    }
+  }, [collectedLetters.length, targetWord.length, gameStatus, isCapturingEmotion])
 
   return (
     <div className="relative">      {/* Top horizontal info bar */}

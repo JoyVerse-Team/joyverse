@@ -1,69 +1,44 @@
-/* Emotion-based dynamic backgrounds */
+/* Emotion-based dynamic backgrounds with fluid animations */
 body.emotion-frustration {
-  background: linear-gradient(270deg, #2d6062, #436f54) !important;
-  transition: background 1.5s ease-in-out !important;
+  background: linear-gradient(270deg, #71a5a7, #6daf86, #37794e, #42cc80) !important;
+  background-size: 800% 800% !important;
+  animation: emotionGradient 8s ease infinite !important;
+  transition: none !important;
 }
 
 body.emotion-sadness {
-  background: linear-gradient(270deg, #635c30, #ffe0ac) !important;
-  transition: background 1.5s ease-in-out !important;
+  background: linear-gradient(270deg, #d4a843, #e8c68a, #ffcc5c, #ffb700) !important;
+  background-size: 800% 800% !important;
+  animation: emotionGradient 8s ease infinite !important;
+  transition: none !important;
 }
 
 body.emotion-anger {
-  background: linear-gradient(270deg, #582727, #acc85f) !important;
-  transition: background 1.5s ease-in-out !important;
+  background: linear-gradient(270deg, #8b4545, #a85555, #c66565, #6f2c2c) !important;
+  background-size: 800% 800% !important;
+  animation: emotionGradient 8s ease infinite !important;
+  transition: none !important;
 }
 
 body.emotion-fear {
-  background: linear-gradient(270deg, #846e45, #784c9c) !important;
-  transition: background 1.5s ease-in-out !important;
+  background: linear-gradient(270deg, #8a6d47, #9c7d58, #b89169, #c193cc) !important;
+  background-size: 800% 800% !important;
+  animation: emotionGradient 8s ease infinite !important;
+  transition: none !important;
 }
 
 body.emotion-neutral {
-  background: linear-gradient(270deg, #a47474, #328092) !important;
-  transition: background 1.5s ease-in-out !important;
+  background: linear-gradient(270deg, #6b8a5a, #7a9669, #89a278, #98ae87) !important;
+  background-size: 800% 800% !important;
+  animation: emotionGradient 8s ease infinite !important;
+  transition: none !important;
 }
 
 body.emotion-happy {
-  background: linear-gradient(270deg, #325532, #3e7753) !important;
-  transition: background 1.5s ease-in-out !important;
-}
-
-/* Animated gradient backgrounds for more fluid effect */
-body.emotion-frustration {
-  background: linear-gradient(270deg, #71a5a7, #6daf86, #37794e, #42cc80);
-  background-size: 800% 800%;
-  animation: emotionGradient 8s ease infinite;
-}
-
-body.emotion-sadness {
-  background: linear-gradient(270deg, #fff3b0, #ffe0ac, #ffcc5c, #ffb700);
-  background-size: 800% 800%;
-  animation: emotionGradient 8s ease infinite;
-}
-
-body.emotion-anger {
-  background: linear-gradient(270deg, #795959, #713f3f, #e0e0e0, #6f2c2c);
-  background-size: 800% 800%;
-  animation: emotionGradient 8s ease infinite;
-}
-
-body.emotion-fear {
-  background: linear-gradient(270deg, #f5e6ca, #e0bbff, #d1a7dd, #c193cc);
-  background-size: 800% 800%;
-  animation: emotionGradient 8s ease infinite;
-}
-
-body.emotion-neutral {
-  background: linear-gradient(270deg, #5da53b, #31756d, #324d69, #9a69ab);
-  background-size: 800% 800%;
-  animation: emotionGradient 8s ease infinite;
-}
-
-body.emotion-happy {
-  background: linear-gradient(270deg, #2e512e, #499487, #40955e, #95d5b2);
-  background-size: 800% 800%;
-  animation: emotionGradient 6s ease infinite;
+  background: linear-gradient(270deg, #4a7a4a, #5d8d5d, #70a070, #83b383) !important;
+  background-size: 800% 800% !important;
+  animation: emotionGradient 6s ease infinite !important;
+  transition: none !important;
 }
 
 @keyframes emotionGradient {
