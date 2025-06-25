@@ -1,10 +1,8 @@
-from fastapi import FastAPI, Request, UploadFile, File, HTTPException
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-import cv2
-import numpy as np
 from PIL import Image
 import io
 import base64
@@ -55,46 +53,11 @@ async def home(request: Request):
     """Serve the main HTML page"""
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.post("/predict")
-async def predict_emotion(file: UploadFile = File(...)):
-    """Predict emotion from uploaded image"""
-    try:
-        if emotion_pipeline is None:
-            raise HTTPException(status_code=500, detail="Model not loaded")
-        
-        # Read the image file
-        contents = await file.read()
-        image = Image.open(io.BytesIO(contents))
-        
-        # Convert to RGB if necessary
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        
-        # Run emotion detection
-        results = emotion_pipeline(image)
-        
-        # Format results
-        predictions = []
-        for result in results:
-            predictions.append({
-                "emotion": result["label"],
-                "confidence": round(result["score"] * 100, 2)
-            })
-        
-        return JSONResponse({
-            "success": True,
-            "predictions": predictions
-        })
-    
-    except Exception as e:
-        return JSONResponse({
-            "success": False,
-            "error": str(e)
-        }, status_code=500)
 
-@app.post("/predict-webcam")
-async def predict_emotion_webcam(request: Request):
-    """Predict emotion from webcam image (base64)"""
+
+@app.post("/detect_emotion")
+async def detect_emotion(request: Request):
+    """Detect emotion from base64 image data - endpoint for game integration"""
     try:
         if emotion_pipeline is None:
             print("Error: Model not loaded")
@@ -112,7 +75,7 @@ async def predict_emotion_webcam(request: Request):
         if image_data.startswith("data:image"):
             image_data = image_data.split(",")[1]
         
-        print("Processing webcam image...")
+        print("Processing emotion detection...")
         
         # Decode base64 image
         image_bytes = base64.b64decode(image_data)
@@ -127,29 +90,24 @@ async def predict_emotion_webcam(request: Request):
         # Run emotion detection
         results = emotion_pipeline(image)
         
-        # Format results
-        predictions = []
-        for result in results:
-            predictions.append({
-                "emotion": result["label"],
-                "confidence": round(result["score"] * 100, 2)
-            })
+        # Get the top prediction
+        top_prediction = results[0] if results else {"label": "neutral", "score": 0.5}
         
-        print(f"Predictions: {predictions}")
+        # Return in the format expected by the frontend
+        response = {
+            "emotion": top_prediction["label"].lower(),
+            "confidence": round(top_prediction["score"], 3)
+        }
         
-        return JSONResponse({
-            "success": True,
-            "predictions": predictions
-        })
-    
+        print(f"Detected emotion: {response}")
+        
+        return JSONResponse(response)
+        
     except Exception as e:
-        print(f"Error in predict_emotion_webcam: {str(e)}")
+        print(f"Error in detect_emotion: {str(e)}")
         import traceback
         traceback.print_exc()
-        return JSONResponse({
-            "success": False,
-            "error": str(e)
-        }, status_code=500)
+        raise HTTPException(status_code=500, detail=f"Emotion detection failed: {str(e)}")
 
 @app.get("/health")
 async def health_check():

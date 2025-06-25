@@ -1,9 +1,13 @@
+const mongoose = require('mongoose');
+
 const sessionSchema = new mongoose.Schema({
-  userPid: { type: String, required: true },
+  userId: { type: String, required: true },
   therapistId: { type: mongoose.Schema.Types.ObjectId, ref: 'Therapist' },
-  game: String,
-  startTime: Date,
+  game: { type: String, default: 'snake' },
+  startTime: { type: Date, default: Date.now },
   endTime: Date,
+  difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
+  isActive: { type: Boolean, default: true },
   durationInSeconds: Number,
   totalWords: Number,
   rounds: [

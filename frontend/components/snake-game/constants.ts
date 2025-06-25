@@ -1,6 +1,6 @@
 // Game constants
-export const CELL_SIZE = 25
-export const GAME_SPEED = 3 // moves per second 
+export const CELL_SIZE = 30
+export const GAME_SPEED = 2.5 // moves per second 
 export const INITIAL_SNAKE_LENGTH = 3
 
 // Colors - VS Code Color Picker Support
