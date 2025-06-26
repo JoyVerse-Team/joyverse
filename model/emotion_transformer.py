@@ -104,7 +104,7 @@ def train_model(model, train_loader, val_loader, device, epochs=10):
     print(f"\n🎯 Final Validation Accuracy: {val_accuracies[-1]:.4f}")
     print("🎉 Training completed. Model ready!")
 
-    plot_metrics(train_losses, train_accuracies, val_accuracies)
+    
 
 
 
