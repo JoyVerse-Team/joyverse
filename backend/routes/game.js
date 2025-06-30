@@ -32,7 +32,7 @@ router.post('/game/start', async (req, res) => {
     res.status(500).json({ error: 'Failed to start game session' });
   }
 });
-
+  
 // Submit emotion data and get next difficulty
 router.post('/game/emotion', async (req, res) => {
   try {
