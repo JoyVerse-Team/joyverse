@@ -4,7 +4,14 @@ import { useEffect, useRef, useState } from "react"
 import { useSnakeGame } from "@/components/snake-game/use-snake-game"
 import { GameStatus } from "@/components/snake-game/types"
 import { Button } from "@/components/ui/button"
+import { gameApiService, type EmotionData } from "../../lib/game-api"
+import { Difficulty } from "@/components/snake-game/word-lists"
 import "@/app/fonts.css"
+
+interface SnakeGameComponentProps {
+  onGameStatusChange?: (status: GameStatus) => void
+  onEmotionUpdate?: (emotion: string) => void
+}
 
 // Simple dialog component for popups
 const GameDialog = ({ children, show }: { children: React.ReactNode; show: boolean }) => {
@@ -57,97 +64,161 @@ const RetroDialog = ({ children, show, vibrant = false }: { children: React.Reac
   );
 };
 
-export function SnakeGame() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [showLifeLossPopup, setShowLifeLossPopup] = useState(false);
-  const [lifeLossResume, setLifeLossResume] = useState(false);
-  const [gamePausedForLifeLoss, setGamePausedForLifeLoss] = useState(false);
-  const lifeLossRef = useRef(false);
+export function SnakeGame({ onGameStatusChange, onEmotionUpdate }: SnakeGameComponentProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  
+  // UI State
+  const [showTutorial, setShowTutorial] = useState<boolean>(false)
+  const [showLifeLossPopup, setShowLifeLossPopup] = useState<boolean>(false)
+  const [lifeLossResume, setLifeLossResume] = useState<boolean>(false)
+  const [gamePausedForLifeLoss, setGamePausedForLifeLoss] = useState<boolean>(false)
+  
+  // Emotion Detection State
+  const [showEmotionDetection, setShowEmotionDetection] = useState<boolean>(false)
+  const [currentEmotion, setCurrentEmotion] = useState<string>("")
+  const [currentDifficulty, setCurrentDifficulty] = useState<Difficulty>("easy")
+  const [isCapturingEmotion, setIsCapturingEmotion] = useState<boolean>(false)
+  
+  // Refs
+  const lifeLossRef = useRef<boolean>(false)
+  
+  // For now, use a placeholder user ID. In a real app, this would come from authentication
+  const userId = "user123"
+  
+  const { 
+    gameStatus, 
+    lives, 
+    wordsCompleted, 
+    targetWord, 
+    collectedLetters, 
+    difficulty,
+    startGame, 
+    restartGame, 
+    pauseGame, 
+    resumeGame   
+  } = useSnakeGame({
+    canvasRef,
+    onLifeLoss: () => {
+      setShowLifeLossPopup(true)
+      setLifeLossResume(false)
+      setGamePausedForLifeLoss(true)
+      lifeLossRef.current = true
+    },
+    paused: gamePausedForLifeLoss,
+  })
 
-  const { gameStatus, lives, targetWord, collectedLetters, startGame, restartGame, pauseGame, resumeGame } =
-    useSnakeGame({
-      canvasRef,
-      onLifeLoss: () => {
-        setShowLifeLossPopup(true);
-        setLifeLossResume(false);
-        setGamePausedForLifeLoss(true);
-        lifeLossRef.current = true;
-      },
-      paused: gamePausedForLifeLoss,
-    });
+  // Function to capture emotion for completed round
+  const captureEmotionForRound = async () => {
+    if (isCapturingEmotion) return
+    
+    setIsCapturingEmotion(true)
+    try {
+      const emotion = await gameApiService.captureAndDetectEmotion()
+      setCurrentEmotion(emotion.emotion)
+      console.log(`Captured emotion: ${emotion.emotion} with confidence ${emotion.confidence}`)
+      
+      // Notify parent component about the emotion update
+      onEmotionUpdate?.(emotion.emotion)
+    } catch (error) {
+      console.error('Failed to capture emotion:', error)
+    } finally {
+      setIsCapturingEmotion(false)
+    }
+  }
+
+  // Update current difficulty when the game state changes
+  useEffect(() => {
+    if (difficulty !== currentDifficulty) {
+      setCurrentDifficulty(difficulty)
+    }
+  }, [difficulty])
+
+  // Notify parent when game status changes
+  useEffect(() => {
+    onGameStatusChange?.(gameStatus)
+  }, [gameStatus, onGameStatusChange])
+
+  // Trigger emotion capture when only one letter is left to collect
+  useEffect(() => {
+    const lettersLeft = targetWord.length - collectedLetters.length
+    if (lettersLeft === 1 && gameStatus === GameStatus.PLAYING && !isCapturingEmotion) {
+      console.log('Only one letter left - triggering emotion capture for difficulty adjustment')
+      captureEmotionForRound()
+    }
+  }, [collectedLetters.length, targetWord.length, gameStatus, isCapturingEmotion])
 
   // Listen for Enter on intro to show tutorial
   useEffect(() => {
     if (gameStatus === GameStatus.INTRO && !showTutorial) {
       const handleEnter = (e: KeyboardEvent) => {
         if (e.key === "Enter") {
-          e.preventDefault();
-          setShowTutorial(true);
+          e.preventDefault()
+          setShowTutorial(true)
         }
-      };
-      window.addEventListener("keydown", handleEnter);
-      return () => window.removeEventListener("keydown", handleEnter);
+      }
+      window.addEventListener("keydown", handleEnter)
+      return () => window.removeEventListener("keydown", handleEnter)
     }
-  }, [gameStatus, showTutorial]);
+  }, [gameStatus, showTutorial])
 
   // Listen for Enter on tutorial to start game
   useEffect(() => {
     if (showTutorial) {
       const handleEnter = (e: KeyboardEvent) => {
         if (e.key === "Enter") {
-          e.preventDefault();
-          setShowTutorial(false);
-          startGame();
+          e.preventDefault()
+          setShowTutorial(false)
+          startGame()
         }
-      };
-      window.addEventListener("keydown", handleEnter);
-      return () => window.removeEventListener("keydown", handleEnter);
+      }
+      window.addEventListener("keydown", handleEnter)
+      return () => window.removeEventListener("keydown", handleEnter)
     }
-  }, [showTutorial, startGame]);
+  }, [showTutorial, startGame])
 
   // Listen for Enter on life loss popup to resume game
   useEffect(() => {
     if (showLifeLossPopup) {
       const handleEnter = (e: KeyboardEvent) => {
         if (e.key === "Enter") {
-          e.preventDefault();
-          setShowLifeLossPopup(false);
-          setLifeLossResume(true);
+          e.preventDefault()
+          setShowLifeLossPopup(false)
+          setLifeLossResume(true)
         }
-      };
-      window.addEventListener("keydown", handleEnter);
-      return () => window.removeEventListener("keydown", handleEnter);
+      }
+      window.addEventListener("keydown", handleEnter)
+      return () => window.removeEventListener("keydown", handleEnter)
     }
-  }, [showLifeLossPopup]);
+  }, [showLifeLossPopup])
 
   // Resume game after life loss popup
   useEffect(() => {
     if (lifeLossResume) {
-      setGamePausedForLifeLoss(false);
-      lifeLossRef.current = false;
-      setLifeLossResume(false);
+      setGamePausedForLifeLoss(false)
+      lifeLossRef.current = false
+      setLifeLossResume(false)
     }
-  }, [lifeLossResume]);
+  }, [lifeLossResume])
 
   // Listen for spacebar to pause/resume game
   useEffect(() => {
     if (gameStatus === GameStatus.PLAYING || gameStatus === GameStatus.PAUSED) {
       const handleSpacebar = (e: KeyboardEvent) => {
         if (e.code === "Space" || e.key === " ") {
-          e.preventDefault();
+          e.preventDefault()
           if (gameStatus === GameStatus.PLAYING) {
-            pauseGame();
+            pauseGame()
           } else if (gameStatus === GameStatus.PAUSED) {
-            resumeGame();
+            resumeGame()
           }
         }
-      };
-      window.addEventListener("keydown", handleSpacebar);
-      return () => window.removeEventListener("keydown", handleSpacebar);
+      }
+      window.addEventListener("keydown", handleSpacebar)
+      return () => window.removeEventListener("keydown", handleSpacebar)
     }
-  }, [gameStatus, pauseGame, resumeGame]);
+  }, [gameStatus, pauseGame, resumeGame])
 
+  // Rest of your component JSX would go here...
   return (    <div className="flex flex-col items-center">
       {/* Two-row layout for game info */}
       <div className="mb-6 w-full max-w-4xl">        {/* Top row - Target Word (left) and Lives (right) */}
