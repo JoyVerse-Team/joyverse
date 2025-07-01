@@ -217,13 +217,6 @@ export function SnakeGame({ onGameStatusChange, onEmotionUpdate }: SnakeGameComp
         >
           🔄 Restart
         </Button>
-        <Button 
-          onClick={captureEmotionForRound}
-          disabled={isCapturingEmotion || gameStatus !== GameStatus.PLAYING}
-          className="bg-purple-500/20 backdrop-blur-sm border border-purple-400/30 text-purple-300 hover:bg-purple-500/30 px-4 py-2 rounded-lg font-semibold transition-all duration-300 disabled:opacity-50"
-        >
-          {isCapturingEmotion ? "📸 Capturing..." : "🎭 Test Emotion"}
-        </Button>
       </div>
     </div>
   )

@@ -11,13 +11,12 @@ import "./emotion-backgrounds.css"
 
 // Emotion to gradient mapping
 const emotionGradients = {
-  frustration: "linear-gradient(270deg, #a8dadc, #d0f4de)",
-  sadness: "linear-gradient(270deg, #fff3b0, #ffe0ac)",
-  anger: "linear-gradient(270deg, #d3d3d3, #f5f5f5)",
-  fear: "linear-gradient(270deg, #f5e6ca, #e0bbff)",
-  neutral: "linear-gradient(270deg, #f0f0f0, #ffffff)",
-  happy: "linear-gradient(270deg, #e6ffe6, #d0f4de)",
-  // surprised is ignored as per requirements
+  'frustration': 'emotion-frustration',
+  'sadness': 'emotion-sadness', 
+  'anger': 'emotion-anger',
+  'fear': 'emotion-fear',
+  'neutral': 'emotion-neutral',
+  'happy': 'emotion-happy'
 }
 
 export default function SnakeGamePage() {
@@ -188,7 +187,7 @@ export default function SnakeGamePage() {
       </div>
 
       <div className="container mx-auto px-4 py-8 relative z-10">          {/* Back Button */}        
-        <div className="mb-6 flex justify-between items-center">
+        <div className="mb-6">
           <Button
             onClick={() => router.push("/")}
             variant="outline"
@@ -196,37 +195,7 @@ export default function SnakeGamePage() {
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Games
-          </Button>          {/* Debug Info Panel */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-3 text-white text-sm">
-            <div className="flex flex-col space-y-1">
-              <div>Game Status: <span className="font-semibold">{gameStatus}</span></div>
-              <div>Background: <span className="font-semibold">{backgroundEmotion}</span></div>
-              <div>Difficulty: <span className="font-semibold">{currentDifficulty}</span></div>
-              <div>Last Update: <span className="text-xs">{lastEmotionUpdate || 'None'}</span></div>
-              {isProcessingEmotion && <div className="text-yellow-300">Processing emotion...</div>}
-              <div className="text-xs text-gray-300">
-                Camera: {gameStatus === GameStatus.PLAYING ? '🟢 ON' : '🔴 OFF'}
-              </div>              <Button 
-                onClick={captureEmotionForUpdate}
-                disabled={isProcessingEmotion}
-                size="sm"
-                className="mt-2 bg-purple-500/20 hover:bg-purple-500/40 text-purple-200 text-xs px-2 py-1"
-              >
-                {isProcessingEmotion ? 'Testing...' : 'Test Emotion'}
-              </Button>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {Object.keys(emotionGradients).map(emotion => (
-                  <button
-                    key={emotion}
-                    onClick={() => setBackgroundEmotion(emotion)}
-                    className="text-xs px-2 py-1 bg-white/10 hover:bg-white/20 rounded border border-white/20"
-                  >
-                    {emotion}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          </Button>
         </div>{/* Game Title */}
        {/* Game Container */}
         <div className="flex justify-center">
