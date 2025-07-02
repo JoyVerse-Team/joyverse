@@ -11,11 +11,36 @@ router.post('/signup', async (req, res) => {
   try {
     const { name, email, password, age, gender, therapistUID } = req.body;
 
-    // Validate required fields
-    if (!name || !email || !password || !age || !gender || !therapistUID) {
+    // Validate required fields based on User model schema
+    if (!name || !email || !password || !therapistUID) {
       return res.status(400).json({
         success: false,
-        message: 'All fields are required: name, email, password, age, gender, therapistUID'
+        message: 'Required fields: name, email, password, therapistUID'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address'
+      });
+    }
+
+    // Validate age if provided
+    if (age && (typeof age !== 'number' || age < 1 || age > 120)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Age must be a number between 1 and 120'
+      });
+    }
+
+    // Validate gender if provided
+    if (gender && !['male', 'female', 'other'].includes(gender.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Gender must be: male, female, or other'
       });
     }
 
@@ -26,7 +51,9 @@ router.post('/signup', async (req, res) => {
         success: false,
         message: 'User with this email already exists'
       });
-    }    // Validate that therapistUID is a valid MongoDB ObjectId
+    }
+
+    // Validate that therapistUID is a valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(therapistUID)) {
       return res.status(400).json({
         success: false,
@@ -50,18 +77,31 @@ router.post('/signup', async (req, res) => {
     // Generate unique PID (you can customize this format)
     const pid = `USER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create new user
+    // Create new user using the User model schema
     const newUser = new User({
       pid,
-      name,
-      email,
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
       passwordHash,
-      age,
-      gender,
+      age: age || undefined,
+      gender: gender ? gender.toLowerCase() : undefined,
       therapistId: therapistUID
     });
 
-    await newUser.save();
+    // Save user and handle validation errors
+    try {
+      await newUser.save();
+    } catch (saveError) {
+      if (saveError.code === 11000) {
+        // Duplicate key error
+        const field = Object.keys(saveError.keyPattern)[0];
+        return res.status(400).json({
+          success: false,
+          message: `${field === 'pid' ? 'User ID' : field} already exists`
+        });
+      }
+      throw saveError;
+    }
 
     // Return success response (without password)
     res.status(201).json({
@@ -101,16 +141,28 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address'
+      });
+    }
+
     let user = null;
     let role = null;
 
+    // Normalize email for consistent lookup
+    const normalizedEmail = email.toLowerCase().trim();
+
     // First, check if it's a user
-    user = await User.findOne({ email });
+    user = await User.findOne({ email: normalizedEmail }).populate('therapistId', 'name email');
     if (user) {
       role = 'user';
     } else {
       // If not found in users, check therapists
-      user = await Therapist.findOne({ email });
+      user = await Therapist.findOne({ email: normalizedEmail });
       if (user) {
         role = 'therapist';
       }
@@ -124,6 +176,14 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Validate that user has required fields according to model
+    if (!user.passwordHash) {
+      return res.status(500).json({
+        success: false,
+        message: 'Account data incomplete. Please contact support.'
+      });
+    }
+
     // Compare password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
@@ -133,20 +193,21 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Prepare response data based on role
+    // Prepare response data based on role and model schema
     let responseData = {
       id: user._id,
-      name: user.name,
+      name: user.name || 'Unknown',
       email: user.email,
       role: role
     };
 
-    // Add role-specific data
+    // Add role-specific data according to User model schema
     if (role === 'user') {
       responseData.pid = user.pid;
       responseData.age = user.age;
       responseData.gender = user.gender;
-      responseData.therapistId = user.therapistId;
+      responseData.therapistId = user.therapistId?._id;
+      responseData.therapistName = user.therapistId?.name;
     }
 
     // Return success response
@@ -165,13 +226,93 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Create initial session after successful login (for immediate game readiness)
+router.post('/create-session', async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    // Find user by PID or MongoDB ID
+    let user = null;
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+      user = await User.findById(userId);
+    } else {
+      user = await User.findOne({ pid: userId });
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Import Session model here to avoid circular dependencies
+    const Session = require('../models/Session');
+
+    // Close any existing active sessions for this user
+    await Session.updateMany(
+      { userId: user.pid, isActive: true },
+      { isActive: false, endTime: new Date() }
+    );
+
+    // Create new session
+    const session = new Session({
+      userId: user.pid,
+      therapistId: user.therapistId,
+      game: 'snake',
+      startTime: new Date(),
+      difficulty: 'medium',
+      isActive: true,
+      rounds: []
+    });
+
+    await session.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Session created successfully',
+      session: {
+        sessionId: session._id,
+        userId: session.userId,
+        therapistId: session.therapistId,
+        difficulty: session.difficulty,
+        game: session.game
+      }
+    });
+
+  } catch (error) {
+    console.error('Session creation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during session creation'
+    });
+  }
+});
+
 // Optional: Route to get user profile (for authenticated users)
 router.get('/profile/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Try to find in users first
-    let user = await User.findById(id).select('-passwordHash');
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID format'
+      });
+    }
+
+    // Try to find in users first with populated therapist data
+    let user = await User.findById(id)
+      .select('-passwordHash')
+      .populate('therapistId', 'name email');
     let role = 'user';
 
     if (!user) {
@@ -187,12 +328,26 @@ router.get('/profile/:id', async (req, res) => {
       });
     }
 
+    // Prepare response according to model schemas
+    let responseData = {
+      ...user.toObject(),
+      role: role
+    };
+
+    // For users, format the therapist data properly
+    if (role === 'user' && user.therapistId) {
+      responseData.therapist = {
+        id: user.therapistId._id,
+        name: user.therapistId.name,
+        email: user.therapistId.email
+      };
+      // Remove the raw therapistId field since we have formatted therapist object
+      delete responseData.therapistId;
+    }
+
     res.status(200).json({
       success: true,
-      user: {
-        ...user.toObject(),
-        role: role
-      }
+      user: responseData
     });
 
   } catch (error) {
