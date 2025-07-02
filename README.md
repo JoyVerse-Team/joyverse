@@ -62,3 +62,4 @@ Make sure MongoDB is running and the connection string in the backend `.env` fil
 ## Testing the Application
 - Go to http://localhost:3000/signup to create a new user account
 - Go to http://localhost:3000/login to login as either user or therapist
+rf6gthtrg4w3as4ed5rtfgyhujuy6e5hgd45fr6gthyuutgrcrdtfgvbhujk
