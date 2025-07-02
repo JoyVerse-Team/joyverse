@@ -34,7 +34,7 @@ const RetroDialog = ({ children, show, vibrant = false }: { children: React.Reac
         <div className="absolute -top-32 -left-32 z-10">
           <div className="w-48 h-48 flex items-center justify-center">
             <img 
-              src="/snake-mascot.png.png" 
+              src="/snake-mascot.png" 
               alt="Mr. Snake - Friendly Learning Mascot" 
               className="w-44 h-44 object-contain drop-shadow-2xl"
               onError={(e) => {
@@ -64,88 +64,31 @@ const RetroDialog = ({ children, show, vibrant = false }: { children: React.Reac
   );
 };
 
-export function SnakeGame({ onGameStatusChange, onEmotionUpdate }: SnakeGameComponentProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  
-  // UI State
-  const [showTutorial, setShowTutorial] = useState<boolean>(false)
-  const [showLifeLossPopup, setShowLifeLossPopup] = useState<boolean>(false)
-  const [lifeLossResume, setLifeLossResume] = useState<boolean>(false)
-  const [gamePausedForLifeLoss, setGamePausedForLifeLoss] = useState<boolean>(false)
-  
-  // Emotion Detection State
-  const [showEmotionDetection, setShowEmotionDetection] = useState<boolean>(false)
-  const [currentEmotion, setCurrentEmotion] = useState<string>("")
-  const [currentDifficulty, setCurrentDifficulty] = useState<Difficulty>("easy")
-  const [isCapturingEmotion, setIsCapturingEmotion] = useState<boolean>(false)
-  
-  // Refs
-  const lifeLossRef = useRef<boolean>(false)
-  
-  // For now, use a placeholder user ID. In a real app, this would come from authentication
-  const userId = "user123"
-  
-  const { 
-    gameStatus, 
-    lives, 
-    wordsCompleted, 
-    targetWord, 
-    collectedLetters, 
-    difficulty,
-    startGame, 
-    restartGame, 
-    pauseGame, 
-    resumeGame   
-  } = useSnakeGame({
-    canvasRef,
-    onLifeLoss: () => {
-      setShowLifeLossPopup(true)
-      setLifeLossResume(false)
-      setGamePausedForLifeLoss(true)
-      lifeLossRef.current = true
-    },
-    paused: gamePausedForLifeLoss,
-  })
+export function SnakeGame() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [showLifeLossPopup, setShowLifeLossPopup] = useState(false);
+  const [lifeLossResume, setLifeLossResume] = useState(false);
+  const [gamePausedForLifeLoss, setGamePausedForLifeLoss] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const lifeLossRef = useRef(false);
 
-  // Function to capture emotion for completed round
-  const captureEmotionForRound = async () => {
-    if (isCapturingEmotion) return
-    
-    setIsCapturingEmotion(true)
-    try {
-      const emotion = await gameApiService.captureAndDetectEmotion()
-      setCurrentEmotion(emotion.emotion)
-      console.log(`Captured emotion: ${emotion.emotion} with confidence ${emotion.confidence}`)
-      
-      // Notify parent component about the emotion update
-      onEmotionUpdate?.(emotion.emotion)
-    } catch (error) {
-      console.error('Failed to capture emotion:', error)
-    } finally {
-      setIsCapturingEmotion(false)
-    }
-  }
-
-  // Update current difficulty when the game state changes
+  // Ensure client-side rendering to prevent hydration issues
   useEffect(() => {
-    if (difficulty !== currentDifficulty) {
-      setCurrentDifficulty(difficulty)
-    }
-  }, [difficulty])
+    setIsClient(true);
+  }, []);
 
-  // Notify parent when game status changes
-  useEffect(() => {
-    onGameStatusChange?.(gameStatus)
-  }, [gameStatus, onGameStatusChange])
-
-  // Trigger emotion capture when only one letter is left to collect
-  useEffect(() => {
-    const lettersLeft = targetWord.length - collectedLetters.length
-    if (lettersLeft === 1 && gameStatus === GameStatus.PLAYING && !isCapturingEmotion) {
-      console.log('Only one letter left - triggering emotion capture for difficulty adjustment')
-      captureEmotionForRound()
-    }
-  }, [collectedLetters.length, targetWord.length, gameStatus, isCapturingEmotion])
+  const { gameStatus, lives, targetWord, collectedLetters, startGame, restartGame, pauseGame, resumeGame } =
+    useSnakeGame({
+      canvasRef,
+      onLifeLoss: () => {
+        setShowLifeLossPopup(true);
+        setLifeLossResume(false);
+        setGamePausedForLifeLoss(true);
+        lifeLossRef.current = true;
+      },
+      paused: gamePausedForLifeLoss,
+    });
 
   // Listen for Enter on intro to show tutorial
   useEffect(() => {
@@ -218,103 +161,154 @@ export function SnakeGame({ onGameStatusChange, onEmotionUpdate }: SnakeGameComp
     }
   }, [gameStatus, pauseGame, resumeGame])
 
-  // Rest of your component JSX would go here...
-  return (    <div className="flex flex-col items-center">
-      {/* Two-row layout for game info */}
-      <div className="mb-6 w-full max-w-4xl">        {/* Top row - Target Word (left) and Lives (right) */}
-        <div className="flex items-center justify-between mb-4">
-          {/* Target Word Section - Top Left */}
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-bold text-gray-800">Target:</span>
-            <span className="text-xl font-bold text-blue-600 bg-blue-100/30 backdrop-blur-sm px-2 py-1 rounded-md border border-blue-300/50">{targetWord}</span>
-          </div>
-            {/* Tries Section - Top Right */}
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-blue-600">Tries:</span>
-            <div className="flex gap-1">
-              {Array(lives).fill("💙").map((heart, index) => (
-                <span key={index} className="text-2xl animate-pulse">{heart}</span>
-              ))}
+  return (
+    <div className="flex flex-col items-center">
+      {!isClient ? (
+        // Server-side loading placeholder
+        <div className="flex flex-col items-center">
+          <div className="mb-6 w-full max-w-4xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-bold text-gray-800">Loading...</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-blue-600">Tries:</span>
+                <div className="flex gap-1">
+                  <span className="text-2xl">💙</span>
+                  <span className="text-2xl">💙</span>
+                  <span className="text-2xl">💙</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <div className="flex gap-1">
+                <div className="w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold bg-gray-200/30 backdrop-blur-sm text-gray-600 border border-dashed border-gray-400/50">
+                  ?
+                </div>
+              </div>
             </div>
           </div>
+          <div className="relative">
+            <canvas
+              className="border-2 border-gray-300 rounded-lg"
+              width={800}
+              height={550}
+            />
+          </div>
         </div>
-        
-        {/* Bottom row - Letter Progress centered */}
-        <div className="flex justify-center">
-          <div className="flex gap-1">
-            {targetWord.split("").map((letter, index) => (
-              <div
-                key={index}
-                className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-all duration-300
-                  ${index < collectedLetters.length 
-                    ? "bg-green-400/40 backdrop-blur-sm text-green-800 shadow-md transform scale-110 border border-green-500/50" 
-                    : "bg-gray-200/30 backdrop-blur-sm text-gray-600 border border-dashed border-gray-400/50"}`}
-              >
-                {letter}
+      ) : (
+        // Client-side actual game
+        <>
+          {/* Two-row layout for game info */}
+          <div className="mb-6 w-full max-w-4xl">
+            {/* Top row - Target Word (left) and Lives (right) */}
+            <div className="flex items-center justify-between mb-4">
+              {/* Target Word Section - Top Left */}
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-bold text-gray-800">Target:</span>
+                <span className="text-xl font-bold text-blue-600 bg-blue-100/30 backdrop-blur-sm px-2 py-1 rounded-md border border-blue-300/50">{targetWord}</span>
               </div>
-            ))}
+              {/* Tries Section - Top Right */}
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-blue-600">Tries:</span>
+                <div className="flex gap-1">
+                  {lives >= 1 && <span className="text-2xl animate-pulse">💙</span>}
+                  {lives >= 2 && <span className="text-2xl animate-pulse">💙</span>}
+                  {lives >= 3 && <span className="text-2xl animate-pulse">💙</span>}
+                </div>
+              </div>
+            </div>
+            
+            {/* Bottom row - Letter Progress centered */}
+            <div className="flex justify-center">
+              <div className="flex gap-1">
+                {targetWord.split("").map((letter, index) => (
+                  <div
+                    key={index}
+                    className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-bold transition-all duration-300
+                    
+                      ${index < collectedLetters.length 
+                        ? "bg-green-400/40 backdrop-blur-sm text-green-800 shadow-md transform scale-110 border border-green-500/50" 
+                        : "bg-gray-200/30 backdrop-blur-sm text-gray-600 border border-dashed border-gray-400/50"}`}
+                  >
+                    {letter}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Canvas container */}
-      <div className="relative">
-        <canvas
-          ref={canvasRef}
-          className="border-2 border-gray-300 rounded-lg"
-          width={800}
-          height={550}
-        />        {/* Intro Popup with Mr. Snake mascot */}
-        <RetroDialog show={gameStatus === GameStatus.INTRO && !showTutorial}>
-          <div className="text-center">
-            <h2 className="text-3xl mb-4 text-green-600">🐍 Hello there, awesome friend!</h2>
-            <p className="text-xl mb-4 text-gray-700">I'm <strong>Mr. Snake</strong>, your learning buddy! 🤓</p>
-            <p className="text-lg mb-6 text-gray-600">I'm super excited to help you learn words together! You're going to do amazing!</p>
-            <p className="text-lg text-green-600 animate-pulse mt-4">Press ENTER to meet me!</p>
+          {/* Canvas container */}
+          <div className="relative">
+            <canvas
+              ref={canvasRef}
+              className="border-2 border-gray-300 rounded-lg"
+              width={800}
+              height={550}
+            />
           </div>
-        </RetroDialog>        {/* Instructions Popup with Mr. Snake mascot */}
-        <RetroDialog show={showTutorial}>
-          <div className="text-center">
-            <h3 className="text-2xl mb-4 text-green-700">🐍 Let's Play Together!</h3>
-            <p className="text-lg mb-4 text-gray-800">Hi! I'm <strong>Mr. Snake</strong> and here's how we'll have fun learning:</p>
-            <ul className="text-lg mb-6 text-gray-800 space-y-3 text-left">
-              <li>🎮 <b>Move me around</b> with WASD keys or Arrow Keys</li>
-              <li>🌟 <b>Help me collect letters</b> in the right order to spell words</li>
-              <li>💙 <b>You have 3 tries</b> - don't worry, I believe in you!</li>
-              <li>🎯 <b>We're a great team!</b> Let's spell words together!</li>
-            </ul>
-            <p className="text-lg text-green-600 animate-pulse">Press ENTER and let's start our adventure!</p>
-          </div>
-        </RetroDialog>        {/* Life Loss Popup with encouraging Mr. Snake */}
-        <RetroDialog show={showLifeLossPopup} vibrant>
-          <div className="text-center">
-            <h3 className="text-3xl mb-4 text-purple-600 font-bold drop-shadow-lg">🐍 Hey, no worries!</h3>
-            <p className="text-lg mb-4 text-gray-900 font-semibold">That's totally okay, my friend! 💙<br/>Mr. Snake says: Every try makes you stronger and smarter!</p>
-            <p className="text-lg mb-4 text-green-700 font-bold">You're doing such a great job learning with me!</p>
-            <p className="text-lg text-green-700 font-bold animate-pulse">Press ENTER and let's keep going together!</p>
-          </div>
-        </RetroDialog>        {/* Game Over State with encouraging Mr. Snake */}
-        {gameStatus === GameStatus.GAME_OVER && (
-          <RetroDialog show={true}>
+
+          {/* Game dialogs and popups */}
+          {/* Intro Popup with Mr. Snake mascot */}
+          <RetroDialog show={gameStatus === GameStatus.INTRO && !showTutorial}>
             <div className="text-center">
-              <h2 className="text-2xl font-bold mb-4 text-green-600">🐍 You're Amazing!</h2>
-              <p className="text-lg mb-4 text-gray-800">
-                Wow! Look how much you tried! 🌟<br/>
-                Mr. Snake is so proud of how hard you worked!
-              </p>
-              <p className="text-lg mb-6 text-purple-600 font-semibold">
-                Every attempt makes you a better reader! Want to try another adventure with Mr. Snake?
-              </p>
-              <Button
-                onClick={restartGame}
-                className="bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-3 rounded-full"
-              >
-                🐍 Let's Play Again with Mr. Snake!
-              </Button>
+              <h2 className="text-3xl mb-4 text-green-600">🐍 Hello there, awesome friend!</h2>
+              <p className="text-xl mb-4 text-gray-700">I'm <strong>Mr. Snake</strong>, your learning buddy! 🤓</p>
+              <p className="text-lg mb-6 text-gray-600">I'm super excited to help you learn words together! You're going to do amazing!</p>
+              <p className="text-lg text-green-600 animate-pulse mt-4">Press ENTER to meet me!</p>
             </div>
           </RetroDialog>
-        )}
-      </div>      {/* Game Controls */}
+
+          {/* Instructions Popup with Mr. Snake mascot */}
+          <RetroDialog show={showTutorial}>
+            <div className="text-center">
+              <h3 className="text-2xl mb-4 text-green-700">🐍 Let's Play Together!</h3>
+              <p className="text-lg mb-4 text-gray-800">Hi! I'm <strong>Mr. Snake</strong> and here's how we'll have fun learning:</p>
+              <ul className="text-lg mb-6 text-gray-800 space-y-3 text-left">
+                <li>🎮 <b>Move me around</b> with WASD keys or Arrow Keys</li>
+                <li>🌟 <b>Help me collect letters</b> in the right order to spell words</li>
+                <li>💙 <b>You have 3 tries</b> - don't worry, I believe in you!</li>
+                <li>🎯 <b>We're a great team!</b> Let's spell words together!</li>
+              </ul>
+              <p className="text-lg text-green-600 animate-pulse">Press ENTER and let's start our adventure!</p>
+            </div>
+          </RetroDialog>
+
+          {/* Life Loss Popup with encouraging Mr. Snake */}
+          <RetroDialog show={showLifeLossPopup} vibrant>
+            <div className="text-center">
+              <h3 className="text-3xl mb-4 text-purple-600 font-bold drop-shadow-lg">🐍 Hey, no worries!</h3>
+              <p className="text-lg mb-4 text-gray-900 font-semibold">That's totally okay, my friend! 💙<br/>Mr. Snake says: Every try makes you stronger and smarter!</p>
+              <p className="text-lg mb-4 text-green-700 font-bold">You're doing such a great job learning with me!</p>
+              <p className="text-lg text-green-700 font-bold animate-pulse">Press ENTER and let's keep going together!</p>
+            </div>
+          </RetroDialog>
+
+          {/* Game Over State with encouraging Mr. Snake */}
+          {gameStatus === GameStatus.GAME_OVER && (
+            <RetroDialog show={true}>
+              <div className="text-center">
+                <h2 className="text-2xl font-bold mb-4 text-green-600">🐍 You're Amazing!</h2>
+                <p className="text-lg mb-4 text-gray-800">
+                  Wow! Look how much you tried! 🌟<br/>
+                  Mr. Snake is so proud of how hard you worked!
+                </p>
+                <p className="text-lg mb-6 text-purple-600 font-semibold">
+                  Every attempt makes you a better reader! Want to try another adventure with Mr. Snake?
+                </p>
+                <Button
+                  onClick={restartGame}
+                  className="bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-3 rounded-full"
+                >
+                  🐍 Let's Play Again with Mr. Snake!
+                </Button>
+              </div>
+            </RetroDialog>
+          )}
+        </>
+      )}
+      
+      {/* Game Controls */}
       <div className="mt-4 space-x-4">
         {gameStatus === GameStatus.PLAYING && (
           <>
