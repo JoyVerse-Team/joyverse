@@ -27,7 +27,7 @@ interface EmotionDetectionResponse {
 }
 
 class GameApiService {
-  private nodeBackendUrl = 'http://localhost:3001'
+  private nodeBackendUrl = 'http://localhost:5000'
   private fastapiUrl = 'http://localhost:8000'
 
   async startGame(userId: string): Promise<StartGameResponse> {

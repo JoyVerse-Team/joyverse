@@ -41,7 +41,7 @@ export default function SnakeGamePage() {
       clearTimeout(initialTimeoutRef.current)
     }
 
-    // Initial emotion capture after a short delay (2 seconds)
+    // Initial emotion capture after a short delay (10 seconds)
     initialTimeoutRef.current = setTimeout(() => {
       captureEmotionForUpdate()
     }, 10000)

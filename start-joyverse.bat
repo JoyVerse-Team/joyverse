@@ -2,7 +2,7 @@
 echo Starting Joyverse Application...
 echo.
 echo Frontend:     http://localhost:3000
-echo Backend:      http://localhost:3001
+echo Backend:      http://localhost:5000
 echo FastAPI:      http://localhost:8000
 echo.
 

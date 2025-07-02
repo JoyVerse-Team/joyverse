@@ -64,21 +64,27 @@ const RetroDialog = ({ children, show, vibrant = false }: { children: React.Reac
   );
 };
 
-export function SnakeGame() {
+export function SnakeGame({ onGameStatusChange, onEmotionUpdate }: SnakeGameComponentProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showLifeLossPopup, setShowLifeLossPopup] = useState(false);
   const [lifeLossResume, setLifeLossResume] = useState(false);
   const [gamePausedForLifeLoss, setGamePausedForLifeLoss] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [currentEmotion, setCurrentEmotion] = useState<string>('');
+  const [currentDifficulty, setCurrentDifficulty] = useState<Difficulty>("level1");
+  const [isCapturingEmotion, setIsCapturingEmotion] = useState(false);
   const lifeLossRef = useRef(false);
+
+  // For now, use a placeholder user ID. In a real app, this would come from authentication
+  const userId = "user123";
 
   // Ensure client-side rendering to prevent hydration issues
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const { gameStatus, lives, targetWord, collectedLetters, startGame, restartGame, pauseGame, resumeGame } =
+  const { gameStatus, lives, targetWord, collectedLetters, difficulty, startGame, restartGame, pauseGame, resumeGame, adjustDifficultyByEmotion } =
     useSnakeGame({
       canvasRef,
       onLifeLoss: () => {
@@ -89,6 +95,51 @@ export function SnakeGame() {
       },
       paused: gamePausedForLifeLoss,
     });
+
+  // Function to capture emotion for completed round
+  const captureEmotionForRound = async () => {
+    if (isCapturingEmotion) return
+    
+    setIsCapturingEmotion(true)
+    try {
+      console.log('Starting emotion capture...')
+      const emotion = await gameApiService.captureAndDetectEmotion()
+      setCurrentEmotion(emotion.emotion)
+      console.log(`Captured emotion: ${emotion.emotion} with confidence ${emotion.confidence}`)
+      
+      // Adjust difficulty based on emotion - THIS IS THE ONLY WAY DIFFICULTY CHANGES
+      const newDifficulty = adjustDifficultyByEmotion(emotion.emotion)
+      console.log(`Difficulty adjusted from emotion ${emotion.emotion} to level: ${newDifficulty}`)
+      
+      // Notify parent component about the emotion update
+      onEmotionUpdate?.(emotion.emotion)
+    } catch (error) {
+      console.error('Failed to capture emotion:', error)
+    } finally {
+      setIsCapturingEmotion(false)
+    }
+  }
+
+  // Update current difficulty when the game state changes
+  useEffect(() => {
+    if (difficulty !== currentDifficulty) {
+      setCurrentDifficulty(difficulty)
+    }
+  }, [difficulty])
+
+  // Notify parent when game status changes
+  useEffect(() => {
+    onGameStatusChange?.(gameStatus)
+  }, [gameStatus, onGameStatusChange])
+
+  // Trigger emotion capture when only one letter is left to collect
+  useEffect(() => {
+    const lettersLeft = targetWord.length - collectedLetters.length
+    if (lettersLeft === 1 && gameStatus === GameStatus.PLAYING && !isCapturingEmotion) {
+      console.log('Only one letter left - triggering emotion capture for difficulty adjustment')
+      captureEmotionForRound()
+    }
+  }, [collectedLetters.length, targetWord.length, gameStatus, isCapturingEmotion])
 
   // Listen for Enter on intro to show tutorial
   useEffect(() => {

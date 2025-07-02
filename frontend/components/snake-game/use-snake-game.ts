@@ -46,7 +46,7 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
     wordsCompleted: 0,
     lives: 3,
     gameStatus: GameStatus.INTRO, // Start with intro screen
-    difficulty: 'easy' as Difficulty
+    difficulty: 'level1' as Difficulty
   })
 
   const TOTAL_WORDS = 10;
@@ -60,24 +60,12 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
     gameStateRef.current = gameState
   }, [gameState])
 
-  // Get a random word based on difficulty
+  // Get a random word based on current difficulty only
   const getRandomWord = useCallback((forceDifficulty?: Difficulty) => {
-    // If difficulty is forced (like starting with 'easy'), use that
-    const difficulty = forceDifficulty || (() => {
-      // After first word, randomly choose any difficulty
-      const difficulties: Difficulty[] = ['easy', 'medium', 'hard'];
-      const randomIndex = Math.floor(Math.random() * difficulties.length);
-      return difficulties[randomIndex];
-    })();
-
+    // Use forced difficulty or current difficulty from state
+    const difficulty = forceDifficulty || gameStateRef.current.difficulty;
     const words = wordLists[difficulty];
     const randomIndex = Math.floor(Math.random() * words.length);
-    
-    // Update the current difficulty
-    setGameState(prev => ({
-      ...prev,
-      difficulty
-    }));
     
     return words[randomIndex];
   }, []);
@@ -142,8 +130,8 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
     const canvas = canvasRef.current
     if (!canvas) return
 
-    // Always start with an easy word
-    const word = getRandomWord('easy')
+    // Always start with level1
+    const word = getRandomWord('level1')
     
     // Create initial snake
     const centerX = Math.floor(canvas.width / CELL_SIZE / 2)
@@ -168,7 +156,7 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
       lives: 3,
       wordsCompleted: 0,
       gameStatus: GameStatus.PLAYING,
-      difficulty: 'easy'
+      difficulty: 'level1'
     }))
   }, [canvasRef, generateLetters, getRandomWord])
 
@@ -449,13 +437,13 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
 
             // Start next word with random difficulty and restore lives
             const nextWord = getRandomWord()
-            const newLetters = generateLetters(nextWord, canvas)
+            const nextWordLetters = generateLetters(nextWord, canvas)
             setGameState(prev => ({
               ...prev,
               snake: newSnake,
               targetWord: nextWord,
               collectedLetters: "",
-              letters: newLetters,
+              letters: nextWordLetters,
               wordsCompleted: newWordsCompleted,
               lives: 3 // Regenerate hearts
             }))
@@ -621,7 +609,7 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
     }
 
     // Get initial word
-    const words = wordLists['easy'];
+    const words = wordLists['level1'];
     const initialWord = words[Math.floor(Math.random() * words.length)];
 
     setGameState({
@@ -630,7 +618,7 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
       nextDirection: Direction.RIGHT,
       targetWord: initialWord,
       collectedLetters: "",
-      letters: initialWord.split('').map((letter, index) => ({
+      letters: initialWord.split('').map((letter: string, index: number) => ({
         letter,
         position: {
           x: Math.floor(Math.random() * (gridWidth - 2)) + 1,
@@ -644,7 +632,7 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
       lives: 3,
       wordsCompleted: 0,
       gameStatus: GameStatus.PLAYING,
-      difficulty: 'easy' as Difficulty
+      difficulty: 'level1' as Difficulty
     });
 
     startGameLoop();
@@ -767,6 +755,52 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
     }
   }, [])
 
+  // Adjust difficulty based on emotion - this is the ONLY way difficulty changes
+  const adjustDifficultyByEmotion = useCallback((emotion: string) => {
+    const currentDifficulty = gameStateRef.current.difficulty;
+    let newDifficulty: Difficulty;
+
+    // Emotion-based difficulty rules:
+    // happy = increase by 1 level
+    // neutral = stay at current level  
+    // anything else = decrease by 1 level
+    
+    const normalizedEmotion = emotion.toLowerCase();
+    
+    if (normalizedEmotion === 'happy' || normalizedEmotion === 'joy') {
+      // Increase difficulty by 1 level
+      switch (currentDifficulty) {
+        case 'level1': newDifficulty = 'level2'; break;
+        case 'level2': newDifficulty = 'level3'; break;
+        case 'level3': newDifficulty = 'level4'; break;
+        case 'level4': newDifficulty = 'level4'; break; // Stay at max
+        default: newDifficulty = 'level1';
+      }
+    } else if (normalizedEmotion === 'neutral') {
+      // Stay at current level
+      newDifficulty = currentDifficulty;
+    } else {
+      // Decrease difficulty by 1 level (for sad, angry, fear, frustrated, etc.)
+      switch (currentDifficulty) {
+        case 'level1': newDifficulty = 'level1'; break; // Stay at min
+        case 'level2': newDifficulty = 'level1'; break;
+        case 'level3': newDifficulty = 'level2'; break;
+        case 'level4': newDifficulty = 'level3'; break;
+        default: newDifficulty = 'level1';
+      }
+    }
+
+    console.log(`Emotion: ${emotion} | Current: ${currentDifficulty} | New: ${newDifficulty}`);
+
+    // Update difficulty in state
+    setGameState(prev => ({
+      ...prev,
+      difficulty: newDifficulty
+    }));
+
+    return newDifficulty;
+  }, []);
+
   // Adjust difficulty (placeholder for future AI integration)
   const adjustDifficulty = useCallback(
     (settings: {
@@ -787,6 +821,7 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
     pauseGame,
     resumeGame,
     adjustDifficulty,
+    adjustDifficultyByEmotion,
   }
 }
 

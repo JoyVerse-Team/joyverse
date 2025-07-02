@@ -29,10 +29,10 @@ router.post('/signup', async (req, res) => {
     }
 
     // Validate age if provided
-    if (age && (typeof age !== 'number' || age < 1 || age > 120)) {
+    if (age && (typeof age !== 'number' || age < 1 || age > 18)) {
       return res.status(400).json({
         success: false,
-        message: 'Age must be a number between 1 and 120'
+        message: 'Age must be a number between 1 and 18'
       });
     }
 
