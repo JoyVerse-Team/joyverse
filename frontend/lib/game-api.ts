@@ -185,6 +185,83 @@ class GameApiService {
     }
   }
 
+  // Submit emotion with automatic session management
+  async submitEmotionToSession(
+    userId: string,
+    emotion: EmotionData,
+    word?: string,
+    roundNumber?: number
+  ): Promise<{ sessionId: string, difficulty: number, difficultyName: string }> {
+    try {
+      const response = await fetch(`${this.nodeBackendUrl}/api/game/submit-emotion-simple`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          emotion: emotion.emotion,
+          confidence: emotion.confidence,
+          word,
+          roundNumber,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to submit emotion: ${response.statusText}`)
+      }
+
+      const result = await response.json()
+      return {
+        sessionId: result.sessionId,
+        difficulty: this.difficultyNameToNumber(result.difficulty),
+        difficultyName: result.difficultyName
+      }
+    } catch (error) {
+      console.error('Error submitting emotion to session:', error)
+      throw error
+    }
+  }
+
+  // Get current active session for user
+  async getCurrentSession(userId: string): Promise<any> {
+    try {
+      const response = await fetch(`${this.nodeBackendUrl}/api/game/current-session/${userId}`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to get current session: ${response.statusText}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error getting current session:', error)
+      throw error
+    }
+  }
+
+  // Capture emotion and submit to session in one call
+  async captureAndSubmitEmotion(
+    userId: string, 
+    word?: string, 
+    roundNumber?: number
+  ): Promise<{ emotion: EmotionData, sessionData: any }> {
+    try {
+      // First capture the emotion
+      const emotion = await this.captureAndDetectEmotion()
+      
+      // Then submit it to the session
+      const sessionData = await this.submitEmotionToSession(userId, emotion, word, roundNumber)
+      
+      return {
+        emotion,
+        sessionData
+      }
+    } catch (error) {
+      console.error('Error capturing and submitting emotion:', error)
+      throw error
+    }
+  }
+
   // Helper to convert difficulty name to number
   private difficultyNameToNumber(difficultyName: string): number {
     switch (difficultyName.toLowerCase()) {

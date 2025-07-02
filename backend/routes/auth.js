@@ -226,6 +226,76 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Create initial session after successful login (for immediate game readiness)
+router.post('/create-session', async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    // Find user by PID or MongoDB ID
+    let user = null;
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+      user = await User.findById(userId);
+    } else {
+      user = await User.findOne({ pid: userId });
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Import Session model here to avoid circular dependencies
+    const Session = require('../models/Session');
+
+    // Close any existing active sessions for this user
+    await Session.updateMany(
+      { userId: user.pid, isActive: true },
+      { isActive: false, endTime: new Date() }
+    );
+
+    // Create new session
+    const session = new Session({
+      userId: user.pid,
+      therapistId: user.therapistId,
+      game: 'snake',
+      startTime: new Date(),
+      difficulty: 'medium',
+      isActive: true,
+      rounds: []
+    });
+
+    await session.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Session created successfully',
+      session: {
+        sessionId: session._id,
+        userId: session.userId,
+        therapistId: session.therapistId,
+        difficulty: session.difficulty,
+        game: session.game
+      }
+    });
+
+  } catch (error) {
+    console.error('Session creation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during session creation'
+    });
+  }
+});
+
 // Optional: Route to get user profile (for authenticated users)
 router.get('/profile/:id', async (req, res) => {
   try {
