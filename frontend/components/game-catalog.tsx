@@ -6,36 +6,25 @@ import GameCard from "./game-card"
 const games = [
   {
     id: "spelling-quiz",
-    name: "Interactive Games",
+    name: "Spelling Quiz",
     description:
-      "Engaging word games like Snake Adventure that make spelling and reading fun while building essential literacy skills.",
+      "🔤 Practice spelling with fun words and pictures! Perfect for building vocabulary and letter recognition.",
     difficulty: "Easy",
-    category: "Educational",
-    icon: "🎮",
-    color: "from-blue-500 to-blue-700",
-    route: "/games/spelling-quiz",
+    category: "Spelling",
+    icon: "📝",
+    color: "from-blue-400 to-cyan-400",
+    route: "/games/spelling-quiz", // You can update this path later
   },
   {
     id: "snake-game",
-    name: "AI Adaptation", 
+    name: "Word Snake Game",
     description:
-      "Advanced machine learning algorithms that understand each child's learning patterns and adjust content difficulty in real-time.",
+      "🐍 Guide the snake to collect letters and spell words! Fun way to practice spelling and hand-eye coordination.",
     difficulty: "Medium",
-    category: "Technology",
-    icon: "🧠",
-    color: "from-purple-500 to-purple-700",
+    category: "Spelling",
+    icon: "🐍",
+    color: "from-green-400 to-emerald-400",
     route: "/snake-game",
-  },
-  {
-    id: "emotion-detection",
-    name: "Emotion Detection",
-    description:
-      "Facial expression recognition technology that monitors engagement and adjusts the experience based on the child's emotional state.",
-    difficulty: "Advanced",
-    category: "AI Technology",
-    icon: "�",
-    color: "from-teal-500 to-teal-700",
-    route: "/emotion-detection",
   },
   // Add more games here easily:
   // {
@@ -52,114 +41,30 @@ const games = [
 
 export default function GameCatalog() {
   return (
-    <section id="games-catalog" className="relative min-h-screen py-20 overflow-hidden">
-      {/* Enhanced Dark Glassmorphic Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950">
-        {/* Large animated gradient orbs */}
-        <div className="absolute top-10 left-10 w-[600px] h-[600px] bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-[500px] h-[500px] bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/3 w-[400px] h-[400px] bg-gradient-to-r from-yellow-500/15 to-orange-500/15 rounded-full blur-3xl animate-pulse delay-2000"></div>
-        
-        {/* Enhanced floating particles with glassmorphic effect */}
-        <div className="absolute inset-0 overflow-hidden">
-          {[
-            { left: '10%', top: '20%', delay: '0s', duration: '4s', size: 'w-3 h-3' },
-            { left: '80%', top: '30%', delay: '1s', duration: '5s', size: 'w-2 h-2' },
-            { left: '30%', top: '60%', delay: '2s', duration: '6s', size: 'w-4 h-4' },
-            { left: '70%', top: '80%', delay: '0.5s', duration: '4.5s', size: 'w-2 h-2' },
-            { left: '50%', top: '15%', delay: '1.5s', duration: '5.5s', size: 'w-3 h-3' },
-            { left: '20%', top: '70%', delay: '3s', duration: '4s', size: 'w-2 h-2' },
-            { left: '90%', top: '60%', delay: '2.5s', duration: '5s', size: 'w-3 h-3' },
-            { left: '60%', top: '40%', delay: '1.8s', duration: '4.8s', size: 'w-2 h-2' }
-          ].map((particle, i) => (
-            <div
-              key={i}
-              className={`absolute ${particle.size} bg-white/30 backdrop-blur-sm rounded-full 
-                         border border-white/20 animate-bounce shadow-lg`}
-              style={{
-                left: particle.left,
-                top: particle.top,
-                animationDelay: particle.delay,
-                animationDuration: particle.duration
-              }}
-            />
-          ))}
+    <section id="games-catalog" className="py-20 bg-white/50">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mb-6">🎮 Choose Your Game!</h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Pick a game below and start your learning adventure! More games coming soon! 🌟
+          </p>
         </div>
 
-        {/* Glassmorphic mesh gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent backdrop-blur-sm"></div>
-      </div>
-      
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="text-center mb-16">
-          <div className="inline-block p-8 rounded-3xl 
-                        bg-gradient-to-br from-white/5 via-transparent to-white/3
-                        backdrop-blur-sm border border-white/30
-                        shadow-[0_16px_40px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.15)]">
-            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 bg-clip-text text-transparent drop-shadow-2xl mb-6">
-              🎮 Choose Your Game!
-            </h2>
-            <p className="text-xl text-white/90 max-w-2xl mx-auto font-medium">
-              Pick a game below and start your learning adventure! More games coming soon! 🌟
-            </p>
-          </div>
-        </div>        
-        
-        {/* Enhanced Games Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {/* Games Grid */}
+        <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
           {games.map((game) => (
-            <div key={game.id} className="flex">
+            <div key={game.id} className="w-full sm:w-auto sm:min-w-[300px] sm:max-w-[350px]">
               <GameCard game={game} />
             </div>
           ))}
 
-          {/* Coming Soon Card - Enhanced */}
-          <div className="flex">
-            <div className="w-full relative rounded-3xl border border-white/30 
-                          bg-gradient-to-br from-white/5 via-transparent to-white/3
-                          backdrop-blur-sm backdrop-saturate-200
-                          shadow-[0_8px_32px_rgba(0,0,0,0.08),0_0_0_1px_rgba(255,255,255,0.1),inset_0_1px_0_rgba(255,255,255,0.15)]
-                          hover:shadow-[0_20px_40px_rgba(139,92,246,0.1),0_0_0_1px_rgba(255,255,255,0.15),inset_0_1px_0_rgba(255,255,255,0.2)]
-                          hover:bg-gradient-to-br hover:from-white/8 hover:via-transparent hover:to-white/5
-                          hover:border-white/40 hover:backdrop-blur-md
-                          transform hover:scale-105 transition-all duration-500 
-                          p-8 flex flex-col items-center justify-center text-center min-h-[280px] overflow-hidden">
-              
-              {/* Light shimmer effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/3 to-transparent 
-                            transform -skew-x-12 -translate-x-full
-                            hover:translate-x-full transition-transform duration-1000 ease-out"></div>
-              
-              <div className="relative z-10">
-                <div className="text-6xl mb-6 animate-bounce">🚀</div>
-                <h3 className="text-2xl font-bold text-white mb-3 drop-shadow-lg">More Games Coming Soon!</h3>
-                <p className="text-white/70 text-lg">We're working on exciting new games for you!</p>
-                <div className="mt-4 flex gap-2 justify-center">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style={{animationDelay: `${i * 0.2}s`}}></div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Corner highlights */}
-              <div className="absolute top-0 left-0 w-20 h-20 bg-gradient-to-br from-white/5 to-transparent rounded-tl-3xl"></div>
-              <div className="absolute bottom-0 right-0 w-20 h-20 bg-gradient-to-tl from-white/5 to-transparent rounded-br-3xl"></div>
+          {/* Coming Soon Card */}
+          <div className="w-full sm:w-auto sm:min-w-[300px] sm:max-w-[350px]">
+            <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl p-8 shadow-lg border-4 border-dashed border-gray-300 flex flex-col items-center justify-center text-center min-h-[300px] opacity-75">
+              <div className="text-6xl mb-4">🚀</div>
+              <h3 className="text-2xl font-bold text-gray-600 mb-4">More Games Coming Soon!</h3>
+              <p className="text-gray-500">We're working on exciting new games for you!</p>
             </div>
-          </div>
-        </div>
-
-        {/* Coming Soon Section */}
-        <div className="mt-20 text-center">
-          <div className="inline-block p-6 rounded-2xl 
-                        bg-gradient-to-br from-white/3 via-transparent to-white/2
-                        backdrop-blur-sm border border-white/20
-                        shadow-[0_8px_24px_rgba(0,0,0,0.05)]">
-            <h3 className="text-2xl font-semibold text-white/90 mb-2 drop-shadow-lg">
-              ✨ More Adventures Await!
-            </h3>
-            <p className="text-white/70 drop-shadow-md">
-              We're constantly adding new therapeutic games and activities to help with your journey.
-            </p>
           </div>
         </div>
       </div>

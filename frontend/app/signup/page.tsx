@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, UserPlus, Sparkles, Heart, Stars, Shield } from 'lucide-react';
-import { signupWithEmail } from '@/lib/auth';
+import { Loader2 } from 'lucide-react';
+import { authAPI } from '@/lib/auth';
 
 export default function SignupPage() {  const [formData, setFormData] = useState({
     fullName: '',
@@ -91,26 +91,26 @@ export default function SignupPage() {  const [formData, setFormData] = useState
     if (!validateForm()) return;
     
     setLoading(true);
-    setMessage('');    try {
-      // Use backend MongoDB authentication
-      const result = await signupWithEmail({
+    setMessage('');
+      try {
+      // Use the auth API
+      const response = await authAPI.signup({
         name: formData.fullName,
         email: formData.email,
         password: formData.password,
-        role: 'user', // Default role for general signup
         age: parseInt(formData.age),
         gender: formData.gender,
         therapistUID: formData.therapistUID
       });
       
-      if (result.success) {
-        setMessage('Account created successfully! Please check your email to verify your account.');
+      if (response.success) {
+        setMessage('Account created successfully! Redirecting to login...');
         
         setTimeout(() => {
-          router.push('/dashboard'); // Redirect to dashboard since they're now logged in
+          router.push('/login');
         }, 3000);
       } else {
-        setMessage(result.message || 'Signup failed');
+        setMessage(response.message || 'Signup failed');
       }
     } catch (error) {
       setMessage('Network error. Please try again.');
@@ -118,117 +118,59 @@ export default function SignupPage() {  const [formData, setFormData] = useState
       setLoading(false);
     }
   };
+
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100">
-      {/* Enhanced Magical Glassmorphism Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-purple-300/60 via-pink-300/50 to-blue-300/60">
-        {/* Enhanced Floating background shapes with more opacity */}
-        <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-purple-400/40 to-pink-400/40 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-40 right-32 w-80 h-80 bg-gradient-to-br from-blue-400/40 to-green-400/40 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute bottom-32 left-40 w-72 h-72 bg-gradient-to-br from-pink-400/40 to-purple-400/40 rounded-full blur-3xl animate-pulse delay-500"></div>
-        <div className="absolute bottom-20 right-20 w-56 h-56 bg-gradient-to-br from-green-400/40 to-blue-400/40 rounded-full blur-3xl animate-pulse delay-700"></div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Join Joy-Verse
+          </CardTitle>
+          <CardDescription>
+            Create your account to get started
+          </CardDescription>
+        </CardHeader>
         
-        {/* Additional ambient light effects */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-yellow-300/20 to-orange-300/20 rounded-full blur-3xl animate-pulse delay-300"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-to-br from-cyan-300/20 to-teal-300/20 rounded-full blur-3xl animate-pulse delay-800"></div>
-        
-        {/* Floating particles */}
-        <div className="absolute top-1/4 left-1/4 animate-float">
-          <div className="w-6 h-6 text-purple-400/60">✦</div>
-        </div>
-        <div className="absolute top-1/3 right-1/3 animate-float-delayed">
-          <div className="w-5 h-5 text-pink-400/60">❤</div>
-        </div>
-        <div className="absolute bottom-1/3 left-1/5 animate-float-slow">
-          <div className="w-7 h-7 text-blue-400/60">✨</div>
-        </div>
-      </div>
-
-      {/* Enhanced Glassmorphic Header */}
-      <header className="relative z-20 backdrop-blur-xl bg-white/30 border-b border-white/40 shadow-lg">
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent drop-shadow-sm">
-              JoyVerse
-            </div>
-          </Link>
-          
-          {/* Navigation Buttons */}
-          <div className="flex items-center gap-4">
-            <Link href="/login">
-              <button className="px-6 py-2 text-gray-700 hover:text-purple-600 font-medium transition-colors duration-300 backdrop-blur-sm bg-white/20 hover:bg-white/30 rounded-xl border border-white/30 shadow-lg">
-                Login
-              </button>
-            </Link>
-            <Link href="/signup">
-              <button className="px-6 py-2 bg-gradient-to-r from-purple-500/90 to-pink-500/90 text-white font-medium rounded-xl backdrop-blur-sm border border-white/40 shadow-lg">
-                Sign Up
-              </button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <div className="relative z-10 flex items-center justify-center min-h-screen p-4 pt-24">
-        {/* Enhanced Glassmorphic Signup Card */}
-        <div className="w-full max-w-md backdrop-blur-2xl bg-white/40 rounded-3xl border border-white/50 shadow-2xl relative overflow-hidden">
-          {/* Inner glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-white/10 rounded-3xl"></div>
-          
-          <div className="relative z-10 p-8">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                Join Joy-Verse
-              </h1>
-              <p className="text-gray-700">
-                Create your account to get started
-              </p>
-            </div>            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {message && (
-                <div className={`p-4 rounded-2xl backdrop-blur-sm border ${
-                  message.includes('successfully') 
-                    ? 'border-green-300/50 bg-green-100/50 text-green-800' 
-                    : 'border-red-300/50 bg-red-100/50 text-red-800'
-                }`}>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {message && (
+              <Alert className={message.includes('successfully') ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+                <AlertDescription className={message.includes('successfully') ? 'text-green-800' : 'text-red-800'}>
                   {message}
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-gray-700 font-medium">Full Name</Label>
-                <Input
-                  type="text"
-                  id="fullName"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  disabled={loading}
-                  className={`backdrop-blur-sm bg-white/30 border-white/40 rounded-xl transition-all duration-300 focus:bg-white/40 focus:border-purple-400/60 ${
-                    errors.fullName ? 'border-red-500/60 bg-red-50/30' : ''
-                  }`}
-                  placeholder="Enter your full name"
-                />
-                {errors.fullName && <p className="text-sm text-red-600">{errors.fullName}</p>}
-              </div>              
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
-                <Input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  disabled={loading}
-                  className={`backdrop-blur-sm bg-white/30 border-white/40 rounded-xl transition-all duration-300 focus:bg-white/40 focus:border-purple-400/60 ${
-                    errors.email ? 'border-red-500/60 bg-red-50/30' : ''
-                  }`}
-                  placeholder="Enter your email"
-                />
-                {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
-              </div>            
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-700 font-medium">Password</Label>
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                type="text"
+                id="fullName"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                disabled={loading}
+                className={errors.fullName ? 'border-red-500' : ''}
+              />
+              {errors.fullName && <p className="text-sm text-red-500">{errors.fullName}</p>}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                disabled={loading}
+                className={errors.email ? 'border-red-500' : ''}
+              />
+              {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
               <Input
                 type="password"
                 id="password"
@@ -236,19 +178,15 @@ export default function SignupPage() {  const [formData, setFormData] = useState
                 value={formData.password}
                 onChange={handleChange}
                 disabled={loading}
-                className={`backdrop-blur-sm bg-white/30 border-white/40 rounded-xl transition-all duration-300 focus:bg-white/40 focus:border-purple-400/60 ${
-                  errors.password ? 'border-red-500/60 bg-red-50/30' : ''
-                }`}
-                placeholder="Create a password"
+                className={errors.password ? 'border-red-500' : ''}
               />
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-500">
                 At least 8 characters with uppercase, lowercase, and number
               </p>
-              {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
+              {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-gray-700 font-medium">Confirm Password</Label>
+              <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input
                 type="password"
                 id="confirmPassword"
@@ -256,15 +194,13 @@ export default function SignupPage() {  const [formData, setFormData] = useState
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 disabled={loading}
-                className={`backdrop-blur-sm bg-white/30 border-white/40 rounded-xl transition-all duration-300 focus:bg-white/40 focus:border-purple-400/60 ${
-                  errors.confirmPassword ? 'border-red-500/60 bg-red-50/30' : ''
-                }`}
-                placeholder="Confirm your password"
+                className={errors.confirmPassword ? 'border-red-500' : ''}
               />
-              {errors.confirmPassword && <p className="text-sm text-red-600">{errors.confirmPassword}</p>}
+              {errors.confirmPassword && <p className="text-sm text-red-500">{errors.confirmPassword}</p>}
             </div>
-              <div className="space-y-2">
-              <Label htmlFor="age" className="text-gray-700 font-medium">Age</Label>
+            
+            <div className="space-y-2">
+              <Label htmlFor="age">Age</Label>
               <Input
                 type="number"
                 id="age"
@@ -274,12 +210,10 @@ export default function SignupPage() {  const [formData, setFormData] = useState
                 disabled={loading}
                 min="5"
                 max="18"
-                className={`backdrop-blur-sm bg-white/30 border-white/40 rounded-xl transition-all duration-300 focus:bg-white/40 focus:border-purple-400/60 ${
-                  errors.age ? 'border-red-500/60 bg-red-50/30' : ''
-                }`}
+                className={errors.age ? 'border-red-500' : ''}
                 placeholder="Enter your age (5-18)"
               />
-              {errors.age && <p className="text-sm text-red-600">{errors.age}</p>}
+              {errors.age && <p className="text-sm text-red-500">{errors.age}</p>}
             </div>
             
             <div className="space-y-2">
@@ -342,9 +276,10 @@ export default function SignupPage() {  const [formData, setFormData] = useState
               </div>
               {errors.terms && <p className="text-sm text-red-500">{errors.terms}</p>}
             </div>
-              <Button 
+            
+            <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-purple-500/90 to-pink-500/90 hover:from-purple-600/90 hover:to-pink-600/90 text-white font-bold py-3 rounded-xl backdrop-blur-sm border border-white/40 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300" 
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600" 
               disabled={loading}
             >
               {loading ? (
@@ -355,17 +290,17 @@ export default function SignupPage() {  const [formData, setFormData] = useState
               ) : (
                 'Create Account'
               )}
-            </Button>              
-              <div className="text-center text-sm text-gray-700">
-                Already have an account?{' '}
-                <Link href="/login" className="text-purple-600 hover:text-purple-800 font-medium transition-colors">
-                  Sign in
-                </Link>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
+            </Button>
+            
+            <div className="text-center text-sm text-gray-600">
+              Already have an account?{' '}
+              <Link href="/login" className="text-purple-600 hover:underline font-medium">
+                Sign in
+              </Link>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
