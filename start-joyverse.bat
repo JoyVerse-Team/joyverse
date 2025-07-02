@@ -7,10 +7,10 @@ echo FastAPI:      http://localhost:8000
 echo.
 
 echo Starting Backend Server...
-start "Backend Server" cmd /k "cd backend && npm start"
+start "Backend Server" cmd /k "cd .. && cd backend && npm start"
 
 echo Starting FastAPI Server...
-start "FastAPI Server" cmd /k "cd fastapi && python main.py"
+start "FastAPI Server" cmd /k "cd .. && cd fastapi && python main.py"
 
 echo Starting Frontend...
 cd frontend
