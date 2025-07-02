@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LogOut, Eye, User, Clock, BookOpen, Calendar, X, Target } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { localDataService, type Therapist, type Student, type GameSession, type WeeklyData } from "@/lib/local-data"
+import { localDataService, type Therapist, type Student, type GameSession, type WeeklyData } from "@/lib/therapist-api"
 
 const getEmotionColor = (emotion: string) => {
   const colors: { [key: string]: string } = {
@@ -58,17 +58,31 @@ export default function Dashboard() {
     }
   }, [router])
 
-  const loadDashboardData = () => {
+  const loadDashboardData = async () => {
     setIsLoading(true)
 
-    // Simulate loading delay
-    setTimeout(() => {
-      const dashboardData = localDataService.getDashboardData()
+    try {
+      const storedTherapist = localStorage.getItem("therapist")
+      if (!storedTherapist) {
+        throw new Error('No therapist found')
+      }
+
+      const therapist = JSON.parse(storedTherapist)
+      const dashboardData = await localDataService.getDashboardData(therapist.id)
+      
       setStudents(dashboardData.students)
       setRecentSessions(dashboardData.recentSessions)
       setWeeklyData(dashboardData.weeklyStats)
       setIsLoading(false)
-    }, 500)
+    } catch (error) {
+      console.error('Error loading dashboard data:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data. Please try again.",
+        variant: "destructive"
+      })
+      setIsLoading(false)
+    }
   }
 
   const handleLogout = () => {
@@ -80,13 +94,23 @@ export default function Dashboard() {
     router.push("/")
   }
 
-  const handleViewStudent = (studentId: string) => {
+  const handleViewStudent = async (studentId: string) => {
     // Find the student data
     const student = students.find((s) => s.id === studentId)
     if (student) {
       setSelectedStudent(student)
-      setSelectedStudentSessions(localDataService.getStudentSessions(studentId))
-      setShowStudentDetail(true)
+      try {
+        const sessions = await localDataService.getStudentSessions(studentId)
+        setSelectedStudentSessions(sessions)
+        setShowStudentDetail(true)
+      } catch (error) {
+        console.error('Error loading student sessions:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load student sessions. Please try again.",
+          variant: "destructive"
+        })
+      }
     }
   }
 
@@ -203,80 +227,71 @@ export default function Dashboard() {
 
           <TabsContent value="sessions">
             <div className="space-y-6">
-              {(() => {
-                // Get recent sessions from all students
-                const allSessions = localDataService
-                  .getDashboardData()
-                  .students.flatMap((student) => localDataService.getStudentSessions(student.id))
-                  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                  .slice(0, 10) // Show last 10 sessions
-
-                return allSessions.map((session) => (
-                  <Card key={session.id} className="bg-white/90 backdrop-blur-sm shadow-lg border-0">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-full p-2">
-                            <BookOpen className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold">
-                              Session {session.sessionNumber} - {session.gameTitle}
-                            </h3>
-                            <p className="text-sm text-gray-600">{session.studentName}</p>
-                          </div>
+              {recentSessions.map((session) => (
+                <Card key={session.id} className="bg-white/90 backdrop-blur-sm shadow-lg border-0">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-full p-2">
+                          <BookOpen className="h-5 w-5 text-white" />
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm text-gray-500">
-                            {new Date(session.timestamp).toLocaleDateString()}
-                          </div>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Clock className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm">{session.totalTime}m total</span>
-                          </div>
+                        <div>
+                          <h3 className="text-lg font-semibold">
+                            Session {session.sessionNumber} - {session.gameTitle}
+                          </h3>
+                          <p className="text-sm text-gray-600">{session.studentName}</p>
                         </div>
                       </div>
-                    </CardHeader>
+                      <div className="text-right">
+                        <div className="text-sm text-gray-500">
+                          {new Date(session.timestamp).toLocaleDateString()}
+                        </div>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <Clock className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm">{session.totalTime}m total</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
 
-                    <CardContent>
-                      {/* Show only Round 1 */}
-                      {session.rounds.length > 0 && (
-                        <div className="border rounded-lg p-4 bg-gray-50">
-                          <h4 className="font-semibold text-gray-800 mb-3 flex items-center space-x-2">
-                            <div className="bg-blue-100 text-blue-700 rounded-full px-3 py-1 text-sm font-semibold">
-                              Round 1
-                            </div>
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {session.rounds[0].words.map((word, wordIndex) => (
-                              <div key={wordIndex} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                                <div className="space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                      <Target className="h-4 w-4 text-purple-600" />
-                                      <span className="font-mono font-bold text-purple-700 text-lg">{word.word}</span>
-                                    </div>
-                                    <Badge className={`text-xs ${getDifficultyColor(word.difficulty)}`}>
-                                      {word.difficulty}
-                                    </Badge>
+                  <CardContent>
+                    {/* Show only Round 1 */}
+                    {session.rounds.length > 0 && session.rounds[0].words && (
+                      <div className="border rounded-lg p-4 bg-gray-50">
+                        <h4 className="font-semibold text-gray-800 mb-3 flex items-center space-x-2">
+                          <div className="bg-blue-100 text-blue-700 rounded-full px-3 py-1 text-sm font-semibold">
+                            Round 1
+                          </div>
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {session.rounds[0].words!.map((word: any, wordIndex: number) => (
+                            <div key={wordIndex} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <Target className="h-4 w-4 text-purple-600" />
+                                    <span className="font-mono font-bold text-purple-700 text-lg">{word.word}</span>
                                   </div>
-                                  <div className="flex items-center justify-between">
-                                    <Badge className={`text-xs ${getEmotionColor(word.emotion)}`}>{word.emotion}</Badge>
-                                    <div className="flex items-center space-x-1">
-                                      <Clock className="h-3 w-3 text-green-600" />
-                                      <span className="text-sm font-semibold text-green-700">{word.timeSpent}m</span>
-                                    </div>
+                                  <Badge className={`text-xs ${getDifficultyColor(word.difficulty)}`}>
+                                    {word.difficulty}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <Badge className={`text-xs ${getEmotionColor(word.emotion)}`}>{word.emotion}</Badge>
+                                  <div className="flex items-center space-x-1">
+                                    <Clock className="h-3 w-3 text-green-600" />
+                                    <span className="text-sm font-semibold text-green-700">{word.timeSpent}m</span>
                                   </div>
                                 </div>
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          ))}
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              })()}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </TabsContent>
 
@@ -479,7 +494,7 @@ export default function Dashboard() {
                                       </div>
                                     </h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                      {round.words.map((word, wordIndex) => (
+                                      {round.words && round.words.map((word: any, wordIndex: number) => (
                                         <div
                                           key={wordIndex}
                                           className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm"

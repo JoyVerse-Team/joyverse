@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const gameRoutes = require('./routes/game');
+const therapistRoutes = require('./routes/therapist');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -75,6 +76,7 @@ process.on('SIGINT', async () => {
 // Routes
 app.use('/api', authRoutes);
 app.use('/api', gameRoutes);
+app.use('/api/therapist', therapistRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
