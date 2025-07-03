@@ -3,51 +3,40 @@ import React from 'react';
 import { useAuth } from '@/components/auth-provider';
 import ProtectedRoute from '@/components/protected-route';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gamepad2, Sparkles, Trophy, Star, ArrowLeft, Target, Heart, Users } from 'lucide-react';
+import { Gamepad2, Sparkles, Trophy, Star, ArrowLeft, Target, Heart, Users, Play, Zap, Brain } from 'lucide-react';
 import Link from 'next/link';
 
 const games = [
   {
     id: 'snake-game',
     title: 'Snake Word Adventure',
-    description: 'Guide the snake to collect letters and spell words while avoiding obstacles!',
+    description: 'Guide the magical snake through enchanted gardens while collecting letters to form powerful words. Master spelling in this thrilling adventure!',
     difficulty: 'Easy',
-    category: 'Spelling',
+    category: 'Spelling & Strategy',
     emoji: '🐍',
-    color: 'from-green-500/70 to-emerald-500/70',
-    route: '/snake-game'
+    gradientFrom: 'from-emerald-400/80',
+    gradientTo: 'to-green-600/80',
+    glowColor: 'shadow-emerald-500/40',
+    route: '/snake-game',
+    features: ['Word Formation', 'Strategy', 'Reflex Training'],
+    icon: Target,
+    bgPattern: 'repeating-linear-gradient(45deg, rgba(16, 185, 129, 0.1) 0px, rgba(16, 185, 129, 0.1) 1px, transparent 1px, transparent 12px)'
   },
   {
-    id: 'spelling-game',
-    title: 'Magic Spelling Quest',
-    description: 'Cast spells by spelling words correctly in this magical adventure!',
+    id: 'car-game',
+    title: 'WordCatcher Car Race',
+    description: 'Drive through lanes to catch the correct letters and complete words! Navigate your car with precision timing in this high-speed word adventure.',
     difficulty: 'Medium',
-    category: 'Spelling',
-    emoji: '✨',
-    color: 'from-purple-500/70 to-pink-500/70',
-    route: '/spelling-game'
-  },
-  {
-    id: 'memory-game',
-    title: 'Memory Palace',
-    description: 'Train your memory with fun patterns and sequences!',
-    difficulty: 'Easy',
-    category: 'Memory',
-    emoji: '🧠',
-    color: 'from-blue-500/70 to-cyan-500/70',
-    route: '/memory-game'
-  },
-  {
-    id: 'reading-game',
-    title: 'Story Adventure',
-    description: 'Go on reading adventures and make choices that shape the story!',
-    difficulty: 'Medium',
-    category: 'Reading',
-    emoji: '📚',
-    color: 'from-orange-500/70 to-red-500/70',
-    route: '/reading-game'
+    category: 'Driving & Vocabulary',
+    emoji: '🚗',
+    gradientFrom: 'from-blue-400/80',
+    gradientTo: 'to-purple-600/80',
+    glowColor: 'shadow-blue-500/40',
+    route: '/car_game',
+    features: ['Car Driving', 'Letter Catching', 'Word Completion'],
+    icon: Zap,
+    bgPattern: 'repeating-linear-gradient(-45deg, rgba(59, 130, 246, 0.1) 0px, rgba(59, 130, 246, 0.1) 1px, transparent 1px, transparent 12px)'
   }
 ];
 
@@ -58,33 +47,53 @@ export default function GamesPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen relative overflow-hidden">
-        {/* Enhanced Animated Background - Matching Homepage */}
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
-          {/* Animated gradient orbs */}
-          <div className="absolute top-20 left-20 w-96 h-96 bg-gradient-to-r from-purple-400/30 to-pink-400/30 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-32 right-32 w-80 h-80 bg-gradient-to-r from-blue-400/30 to-cyan-400/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-yellow-400/20 to-orange-400/20 rounded-full blur-3xl animate-pulse delay-2000"></div>
+        {/* Dark Glass Morphic Background */}
+        <div className="absolute inset-0">
+          {/* Base dark gradient - matching other pages */}
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900"></div>
           
-          {/* Floating particles */}
+          {/* Floating glass orbs with glassmorphism */}
+          <div className="absolute top-20 left-20 w-96 h-96 rounded-full blur-3xl opacity-30"
+               style={{
+                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+                 backdropFilter: 'blur(20px)',
+                 border: '1px solid rgba(255, 255, 255, 0.1)'
+               }}>
+          </div>
+          <div className="absolute bottom-32 right-32 w-80 h-80 rounded-full blur-3xl opacity-25"
+               style={{
+                 background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(139, 92, 246, 0.1))',
+                 backdropFilter: 'blur(20px)',
+                 border: '1px solid rgba(168, 85, 247, 0.2)'
+               }}>
+          </div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full blur-3xl opacity-20"
+               style={{
+                 background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1))',
+                 backdropFilter: 'blur(20px)',
+                 border: '1px solid rgba(16, 185, 129, 0.2)'
+               }}>
+          </div>
+          
+          {/* Animated glass particles */}
           <div className="absolute inset-0 overflow-hidden">
             {[
-              { left: '10%', top: '20%', delay: '0s', duration: '3s' },
-              { left: '80%', top: '30%', delay: '1s', duration: '4s' },
-              { left: '30%', top: '60%', delay: '2s', duration: '5s' },
-              { left: '70%', top: '80%', delay: '0.5s', duration: '3.5s' },
-              { left: '50%', top: '15%', delay: '1.5s', duration: '4.5s' },
-              { left: '20%', top: '70%', delay: '0.8s', duration: '3.8s' },
-              { left: '90%', top: '50%', delay: '2.2s', duration: '4.2s' },
-              { left: '15%', top: '45%', delay: '1.2s', duration: '3.2s' },
-              { left: '60%', top: '25%', delay: '0.3s', duration: '5.5s' },
-              { left: '40%', top: '85%', delay: '1.8s', duration: '3.6s' }
+              { left: '15%', top: '25%', size: 'w-4 h-4', delay: '0s', duration: '8s' },
+              { left: '85%', top: '35%', size: 'w-3 h-3', delay: '2s', duration: '10s' },
+              { left: '35%', top: '65%', size: 'w-5 h-5', delay: '4s', duration: '7s' },
+              { left: '75%', top: '75%', size: 'w-2 h-2', delay: '1s', duration: '9s' },
+              { left: '55%', top: '20%', size: 'w-4 h-4', delay: '3s', duration: '6s' },
+              { left: '25%', top: '80%', size: 'w-3 h-3', delay: '5s', duration: '8s' }
             ].map((particle, i) => (
               <div
                 key={i}
-                className="absolute w-2 h-2 bg-white/20 rounded-full animate-bounce"
+                className={`absolute ${particle.size} rounded-full animate-pulse opacity-40`}
                 style={{
                   left: particle.left,
                   top: particle.top,
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1))',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
                   animationDelay: particle.delay,
                   animationDuration: particle.duration
                 }}
@@ -93,8 +102,13 @@ export default function GamesPage() {
           </div>
         </div>
 
-        {/* Header - Matching Homepage Style */}
-        <header className="relative z-20 backdrop-blur-2xl bg-white/10 border-b border-white/20 shadow-2xl">
+        {/* Glass Morphic Header */}
+        <header className="relative z-20"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+                  backdropFilter: 'blur(20px)',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+                }}>
           <div className="container mx-auto px-6 py-6">
             <div className="flex justify-between items-center">
               <Link href="/" className="flex items-center gap-4">
@@ -102,19 +116,35 @@ export default function GamesPage() {
                   <div className="text-4xl font-black bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-2xl">
                     JoyVerse
                   </div>
-                  <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400/20 via-purple-400/20 to-pink-400/20 rounded-lg blur-sm -z-10"></div>
+                  <div className="absolute -inset-1 rounded-lg blur-sm -z-10"
+                       style={{
+                         background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+                         backdropFilter: 'blur(10px)'
+                       }}>
+                  </div>
                 </div>
               </Link>
               
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 px-6 py-3 backdrop-blur-xl bg-gradient-to-r from-white/20 to-white/10 rounded-2xl border border-white/30 shadow-xl">
+                <div className="flex items-center gap-3 px-6 py-3 rounded-2xl shadow-xl"
+                     style={{
+                       background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05))',
+                       backdropFilter: 'blur(20px)',
+                       border: '1px solid rgba(255, 255, 255, 0.2)'
+                     }}>
                   <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
                   <Users className="w-5 h-5 text-cyan-300" />
                   <span className="font-bold text-white drop-shadow-lg">Welcome, {user?.name}!</span>
                 </div>
                 <Button
                   onClick={() => router.push('/')}
-                  className="px-6 py-3 backdrop-blur-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                  className="px-6 py-3 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 border-0"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1))',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: 'white'
+                  }}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to Home
@@ -130,129 +160,239 @@ export default function GamesPage() {
             {/* Hero Section */}
             <div className="text-center mb-16 space-y-8">
               {/* Mission Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-xl border border-white/30 shadow-xl">
-                <Gamepad2 className="w-4 h-4 text-cyan-400" />
-                <span className="text-sm font-semibold text-white">Choose Your Adventure</span>
+              <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full shadow-xl"
+                   style={{
+                     background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05))',
+                     backdropFilter: 'blur(20px)',
+                     border: '1px solid rgba(255, 255, 255, 0.2)'
+                   }}>
+                <Gamepad2 className="w-5 h-5 text-cyan-400" />
+                <span className="text-lg font-semibold text-white">Choose Your Adventure</span>
               </div>
 
-              <h1 className="text-5xl lg:text-6xl font-black bg-gradient-to-r from-cyan-300 to-purple-400 bg-clip-text text-transparent drop-shadow-2xl">
-                Game Collection
+              <h1 className="text-6xl lg:text-7xl font-black bg-gradient-to-r from-white via-cyan-200 to-purple-300 bg-clip-text text-transparent drop-shadow-2xl">
+                Game Universe
               </h1>
-              <p className="text-xl lg:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed font-medium">
-                Pick a game that excites you and start your learning journey. Each game adapts to your emotions and learning style!
+              <p className="text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed font-medium">
+                Immerse yourself in our premium gaming experience. Each adventure is crafted to challenge your mind while adapting to your emotions and learning style.
               </p>
             </div>
 
-            {/* Games Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-              {games.map((game) => (
-                <Card 
+            {/* Games Grid - Dark Glass Morphic Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+              {games.map((game, index) => (
+                <div 
                   key={game.id} 
-                  className="group backdrop-blur-2xl bg-gradient-to-br from-white/10 via-white/5 to-white/10 border border-white/20 shadow-2xl hover:shadow-purple-500/25 transform hover:scale-105 transition-all duration-500 cursor-pointer relative overflow-hidden"
+                  className="group relative overflow-hidden rounded-3xl shadow-2xl transform hover:scale-105 transition-all duration-700 cursor-pointer"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }}
                   onClick={() => router.push(game.route)}
                 >
-                  {/* Enhanced gradient overlay */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${game.color} opacity-20 group-hover:opacity-40 transition-opacity duration-500`}></div>
+                  {/* Dynamic background pattern */}
+                  <div className="absolute inset-0 opacity-20"
+                       style={{ backgroundImage: game.bgPattern }}>
+                  </div>
                   
-                  <CardHeader className="relative z-10 p-8">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="text-5xl drop-shadow-lg">{game.emoji}</div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs backdrop-blur-xl bg-white/20 px-3 py-1.5 rounded-full text-white font-semibold border border-white/30">
+                  {/* Gradient overlay */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${game.gradientFrom} ${game.gradientTo} opacity-20 group-hover:opacity-40 transition-opacity duration-500`}></div>
+                  
+                  {/* Glow effect on hover */}
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${game.glowColor} blur-xl`}></div>
+                  
+                  <div className="relative z-10 p-8 lg:p-10">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-8">
+                      <div className="flex items-center gap-4">
+                        <div className="text-6xl drop-shadow-2xl transform group-hover:scale-110 transition-transform duration-300">
+                          {game.emoji}
+                        </div>
+                        <div className="p-3 rounded-2xl shadow-lg"
+                             style={{
+                               background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1))',
+                               backdropFilter: 'blur(10px)',
+                               border: '1px solid rgba(255, 255, 255, 0.2)'
+                             }}>
+                          <game.icon className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-2">
+                        <span className="text-xs px-4 py-2 rounded-full text-white font-semibold"
+                              style={{
+                                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1))',
+                                backdropFilter: 'blur(10px)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)'
+                              }}>
                           {game.category}
                         </span>
-                        <span className={`text-xs px-3 py-1.5 rounded-full font-semibold border ${
+                        <span className={`text-xs px-4 py-2 rounded-full font-semibold ${
                           game.difficulty === 'Easy' 
-                            ? 'bg-green-500/20 text-green-300 border-green-400/30' 
-                            : 'bg-orange-500/20 text-orange-300 border-orange-400/30'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' 
+                            : 'bg-purple-500/20 text-purple-300 border border-purple-400/30'
                         }`}>
                           {game.difficulty}
                         </span>
                       </div>
                     </div>
                     
-                    <CardTitle className="text-2xl lg:text-3xl font-bold text-white group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:to-purple-300 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300 drop-shadow-lg mb-4">
-                      {game.title}
-                    </CardTitle>
-                    
-                    <CardDescription className="text-white/80 text-lg leading-relaxed font-medium">
-                      {game.description}
-                    </CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent className="relative z-10 p-8 pt-0">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="w-5 h-5 text-yellow-400 fill-current drop-shadow-sm" />
+                    {/* Content */}
+                    <div className="space-y-6">
+                      <h3 className="text-3xl lg:text-4xl font-bold text-white group-hover:bg-gradient-to-r group-hover:from-cyan-300 group-hover:to-purple-300 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300 drop-shadow-lg">
+                        {game.title}
+                      </h3>
+                      
+                      <p className="text-gray-300 text-lg leading-relaxed font-medium">
+                        {game.description}
+                      </p>
+                      
+                      {/* Features */}
+                      <div className="flex flex-wrap gap-2">
+                        {game.features.map((feature, i) => (
+                          <span key={i} className="px-3 py-1 text-sm rounded-full text-gray-300"
+                                style={{
+                                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+                                  backdropFilter: 'blur(10px)',
+                                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                                }}>
+                            {feature}
+                          </span>
                         ))}
-                        <span className="text-sm text-white/70 ml-3 font-medium">Perfect for you!</span>
                       </div>
                       
+                      {/* Rating */}
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className="w-5 h-5 text-yellow-400 fill-current drop-shadow-sm" />
+                          ))}
+                        </div>
+                        <span className="text-sm text-gray-400 font-medium">Perfect match for you!</span>
+                      </div>
+                      
+                      {/* Play Button */}
                       <Button 
-                        className="group/btn px-6 py-3 backdrop-blur-xl bg-gradient-to-r from-purple-500/80 to-pink-500/80 hover:from-purple-600/90 hover:to-pink-600/90 text-white font-bold rounded-2xl border border-white/30 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
+                        className={`group/btn w-full py-4 text-lg font-bold rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-300 border-0 ${game.glowColor}`}
+                        style={{
+                          background: `linear-gradient(135deg, ${game.gradientFrom.replace('from-', '').replace('/80', '')}, ${game.gradientTo.replace('to-', '').replace('/80', '')})`,
+                          backdropFilter: 'blur(20px)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)'
+                        }}
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(game.route);
                         }}
                       >
-                        <Gamepad2 className="w-4 h-4 mr-2 group-hover/btn:rotate-12 transition-transform" />
-                        Play Now
+                        <Play className="w-6 h-6 mr-3 group-hover/btn:scale-110 transition-transform" />
+                        Start Adventure
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
             </div>
 
-            {/* Stats Section */}
-            <div className="backdrop-blur-2xl bg-gradient-to-br from-white/10 via-white/5 to-white/10 rounded-3xl border border-white/20 shadow-2xl p-8 lg:p-12">
+            {/* Stats Section - Glass Morphic */}
+            <div className="rounded-3xl shadow-2xl p-8 lg:p-12"
+                 style={{
+                   background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+                   backdropFilter: 'blur(20px)',
+                   border: '1px solid rgba(255, 255, 255, 0.1)'
+                 }}>
               <div className="text-center mb-8 space-y-4">
                 <div className="flex items-center justify-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-cyan-500/80 to-purple-500/80 flex items-center justify-center shadow-xl">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-xl"
+                       style={{
+                         background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.8), rgba(139, 92, 246, 0.6))',
+                         backdropFilter: 'blur(10px)',
+                         border: '1px solid rgba(168, 85, 247, 0.3)'
+                       }}>
                     <Trophy className="w-6 h-6 text-white" />
                   </div>
-                  <h2 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-cyan-300 to-purple-400 bg-clip-text text-transparent drop-shadow-lg">
-                    Your Progress
+                  <h2 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent drop-shadow-lg">
+                    Your Journey
                   </h2>
                 </div>
-                <p className="text-white/80 text-lg">Keep playing to unlock new achievements and build your skills!</p>
+                <p className="text-gray-300 text-xl">Track your progress and celebrate every achievement!</p>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="text-center backdrop-blur-xl bg-white/10 rounded-2xl p-6 border border-white/20 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                  <div className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent drop-shadow-lg mb-3">0</div>
-                  <div className="text-white/90 font-semibold text-lg">Games Played</div>
-                  <div className="text-white/60 text-sm mt-1">Start your first adventure!</div>
+                <div className="text-center rounded-2xl p-6 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                     style={{
+                       background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+                       backdropFilter: 'blur(15px)',
+                       border: '1px solid rgba(255, 255, 255, 0.1)'
+                     }}>
+                  <div className="text-5xl lg:text-6xl font-black bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent drop-shadow-lg mb-3">0</div>
+                  <div className="text-white font-semibold text-xl mb-1">Games Mastered</div>
+                  <div className="text-gray-400 text-sm">Ready to begin your quest!</div>
                 </div>
-                <div className="text-center backdrop-blur-xl bg-white/10 rounded-2xl p-6 border border-white/20 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                  <div className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-lg mb-3">0</div>
-                  <div className="text-white/90 font-semibold text-lg">Words Learned</div>
-                  <div className="text-white/60 text-sm mt-1">Build your vocabulary!</div>
+                <div className="text-center rounded-2xl p-6 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                     style={{
+                       background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+                       backdropFilter: 'blur(15px)',
+                       border: '1px solid rgba(255, 255, 255, 0.1)'
+                     }}>
+                  <div className="text-5xl lg:text-6xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-lg mb-3">0</div>
+                  <div className="text-white font-semibold text-xl mb-1">Words Discovered</div>
+                  <div className="text-gray-400 text-sm">Expand your vocabulary!</div>
                 </div>
-                <div className="text-center backdrop-blur-xl bg-white/10 rounded-2xl p-6 border border-white/20 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                  <div className="text-4xl lg:text-5xl font-black bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg mb-3">0</div>
-                  <div className="text-white/90 font-semibold text-lg">Achievements</div>
-                  <div className="text-white/60 text-sm mt-1">Unlock amazing rewards!</div>
+                <div className="text-center rounded-2xl p-6 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                     style={{
+                       background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
+                       backdropFilter: 'blur(15px)',
+                       border: '1px solid rgba(255, 255, 255, 0.1)'
+                     }}>
+                  <div className="text-5xl lg:text-6xl font-black bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent drop-shadow-lg mb-3">0</div>
+                  <div className="text-white font-semibold text-xl mb-1">Epic Achievements</div>
+                  <div className="text-gray-400 text-sm">Unlock legendary rewards!</div>
                 </div>
               </div>
 
-              {/* Motivation Section */}
-              <div className="mt-8 text-center">
-                <div className="backdrop-blur-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl p-6 border border-white/30 shadow-xl">
-                  <div className="flex items-center justify-center gap-3 mb-4">
-                    <Heart className="w-6 h-6 text-pink-300 animate-pulse" />
-                    <span className="text-white font-bold text-lg">Ready to Start Learning?</span>
-                    <Sparkles className="w-6 h-6 text-cyan-300 animate-pulse" />
+              {/* Call to Action */}
+              <div className="mt-12 text-center">
+                <div className="rounded-2xl p-8 shadow-xl"
+                     style={{
+                       background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(139, 92, 246, 0.1))',
+                       backdropFilter: 'blur(15px)',
+                       border: '1px solid rgba(168, 85, 247, 0.3)'
+                     }}>
+                  <div className="flex items-center justify-center gap-3 mb-6">
+                    <Brain className="w-8 h-8 text-purple-300 animate-pulse" />
+                    <span className="text-white font-bold text-2xl">Ready for the Challenge?</span>
+                    <Sparkles className="w-8 h-8 text-cyan-300 animate-pulse" />
                   </div>
-                  <p className="text-white/80 mb-6">Choose any game above to begin your personalized learning adventure!</p>
-                  <Button 
-                    onClick={() => router.push('/snake-game')}
-                    className="group px-8 py-4 text-lg font-bold backdrop-blur-xl bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white rounded-2xl border border-white/30 shadow-2xl hover:shadow-green-500/25 transform hover:scale-105 transition-all duration-300"
-                  >
-                    <Gamepad2 className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
-                    Start with Snake Adventure
-                  </Button>
+                  <p className="text-gray-300 text-lg mb-8">Choose your first adventure and begin an extraordinary learning journey tailored just for you!</p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Button 
+                      onClick={() => router.push('/snake-game')}
+                      className="group px-8 py-4 text-lg font-bold rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-300 border-0"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.8), rgba(5, 150, 105, 0.6))',
+                        backdropFilter: 'blur(20px)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        color: 'white'
+                      }}
+                    >
+                      <Target className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
+                      Snake Adventure
+                    </Button>
+                    <Button 
+                      onClick={() => router.push('/car_game')}
+                      className="group px-8 py-4 text-lg font-bold rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-300 border-0"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(139, 92, 246, 0.6))',
+                        backdropFilter: 'blur(20px)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        color: 'white'
+                      }}
+                    >
+                      <Zap className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
+                      Car Word Race
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
