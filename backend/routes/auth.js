@@ -155,16 +155,19 @@ router.post('/login', async (req, res) => {
 
     // Normalize email for consistent lookup
     const normalizedEmail = email.toLowerCase().trim();
+    console.log('🔍 Login attempt for email:', normalizedEmail);
 
     // First, check if it's a user
     user = await User.findOne({ email: normalizedEmail }).populate('therapistId', 'name email');
     if (user) {
       role = 'user';
+      console.log('✅ Found user:', user.name);
     } else {
       // If not found in users, check therapists
       user = await Therapist.findOne({ email: normalizedEmail });
       if (user) {
         role = 'therapist';
+        console.log('✅ Found therapist:', user.name, 'stored password:', user.passwordHash);
       }
     }
 
@@ -184,9 +187,28 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Compare password
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    // Compare password - different logic for therapists vs users
+    let isPasswordValid = false;
+    
+    console.log('Login Debug Info:');
+    console.log('- Role:', role);
+    console.log('- User found:', !!user);
+    console.log('- Email from request:', password); // Note: logging password for debugging - remove this later
+    console.log('- Stored passwordHash:', user.passwordHash);
+    console.log('- Password comparison (===):', password === user.passwordHash);
+    
+    if (role === 'therapist') {
+      // For therapists, compare plain text passwords (as requested)
+      isPasswordValid = password === user.passwordHash;
+      console.log('- Therapist password check result:', isPasswordValid);
+    } else {
+      // For users (children), continue using bcrypt
+      isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      console.log('- User bcrypt check result:', isPasswordValid);
+    }
+    
     if (!isPasswordValid) {
+      console.log('- LOGIN FAILED: Password invalid');
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -355,6 +377,83 @@ router.get('/profile/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error'
+    });
+  }
+});
+
+// Therapist Signup Route - Store password without encryption/hashing
+router.post('/therapist-signup', async (req, res) => {
+  try {
+    const { name, email, password, organization, license, experience, bio } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Required fields: name, email, password'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address'
+      });
+    }
+
+    // Check if therapist already exists
+    const existingTherapist = await Therapist.findOne({ email: email.toLowerCase().trim() });
+    if (existingTherapist) {
+      return res.status(400).json({
+        success: false,
+        message: 'Therapist with this email already exists'
+      });
+    }
+
+    // Create new therapist with plain text password (as requested)
+    const newTherapist = new Therapist({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      passwordHash: password, // Storing plain text password as requested
+      organization: organization?.trim(),
+      license: license?.trim(),
+      experience: experience?.trim(),
+      bio: bio?.trim()
+    });
+
+    // Save therapist
+    try {
+      await newTherapist.save();
+    } catch (saveError) {
+      if (saveError.code === 11000) {
+        // Duplicate key error
+        return res.status(400).json({
+          success: false,
+          message: 'Email already exists'
+        });
+      }
+      throw saveError;
+    }
+
+    // Return success response (without password)
+    res.status(201).json({
+      success: true,
+      message: 'Therapist application submitted successfully',
+      user: {
+        id: newTherapist._id,
+        name: newTherapist.name,
+        email: newTherapist.email,
+        role: 'therapist'
+      }
+    });
+
+  } catch (error) {
+    console.error('Therapist signup error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during therapist signup'
     });
   }
 });

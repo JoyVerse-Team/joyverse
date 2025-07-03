@@ -2,15 +2,14 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const Session = require('../models/Session');
-const EmotionSample = require('../models/EmotionSample');
 const User = require('../models/Users');
 
 // Start a new game session
 router.post('/game/start', async (req, res) => {
   try {
-    const { userId, therapistId, game } = req.body;
+    const { userId, gameName } = req.body;
 
-    // Validate required fields according to Session model
+    // Validate required fields
     if (!userId) {
       return res.status(400).json({ 
         success: false,
@@ -18,8 +17,14 @@ router.post('/game/start', async (req, res) => {
       });
     }
 
-    // Validate userId exists in Users collection
-    const user = await User.findOne({ pid: userId });
+    // Find user by PID or MongoDB ID
+    let user = null;
+    if (mongoose.Types.ObjectId.isValid(userId)) {
+      user = await User.findById(userId);
+    } else {
+      user = await User.findOne({ pid: userId });
+    }
+
     if (!user) {
       return res.status(404).json({ 
         success: false,
@@ -27,62 +32,25 @@ router.post('/game/start', async (req, res) => {
       });
     }
 
-    // Validate therapistId if provided
-    if (therapistId && !mongoose.Types.ObjectId.isValid(therapistId)) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Invalid therapist ID format' 
-      });
-    }
-
-    // Validate game type according to schema
-    const validGames = ['snake']; // Add more games as they're implemented
-    const gameType = game || 'snake';
-    if (!validGames.includes(gameType)) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Invalid game type. Supported games: ' + validGames.join(', ')
-      });
-    }
-
-    // Close any existing active sessions for this user
-    await Session.updateMany(
-      { userId: userId, isActive: true },
-      { isActive: false, endTime: new Date() }
-    );
-
-    // Create new session according to Session model schema
+    // Create new session with simplified schema
     const session = new Session({
-      userId,
-      therapistId: therapistId || user.therapistId,
-      game: gameType,
-      startTime: new Date(),
-      difficulty: 'medium', // Default starting difficulty as per schema
-      isActive: true,
-      rounds: [] // Initialize empty rounds array
+      userId: user._id, // Use MongoDB ObjectId
+      gameName: gameName || 'Snake Word Game',
+      roundsPlayed: 0,
+      durationSeconds: 0,
+      emotionSamples: []
     });
 
     await session.save();
 
     res.json({
       success: true,
-      session_id: session._id,
-      initial_difficulty: session.difficulty,
-      game: session.game,
+      sessionId: session._id,
+      gameName: session.gameName,
       message: 'Game session started successfully'
     });
   } catch (error) {
     console.error('Error starting game session:', error);
-    
-    // Handle validation errors
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ 
-        success: false,
-        error: 'Validation error: ' + errors.join(', ')
-      });
-    }
-    
     res.status(500).json({ 
       success: false,
       error: 'Failed to start game session' 
@@ -93,13 +61,13 @@ router.post('/game/start', async (req, res) => {
 // Submit emotion data and get next difficulty
 router.post('/game/emotion', async (req, res) => {
   try {
-    const { userId, sessionId, emotion, confidence, roundNumber, word, timeTaken } = req.body;
+    const { userId, sessionId, emotion, confidence, word, difficulty } = req.body;
 
-    // Validate required fields according to EmotionSample model
-    if (!userId || !sessionId || !emotion) {
+    // Validate required fields
+    if (!userId || !sessionId || !emotion || !word) {
       return res.status(400).json({ 
         success: false,
-        error: 'Missing required fields: userId, sessionId, emotion' 
+        error: 'Missing required fields: userId, sessionId, emotion, word' 
       });
     }
 
@@ -111,7 +79,7 @@ router.post('/game/emotion', async (req, res) => {
       });
     }
 
-    // Validate confidence range according to schema (0-1)
+    // Validate confidence range (0-1)
     if (confidence !== undefined && (confidence < 0 || confidence > 1)) {
       return res.status(400).json({ 
         success: false,
@@ -119,7 +87,7 @@ router.post('/game/emotion', async (req, res) => {
       });
     }
 
-    // Find the session and validate it exists and is active
+    // Find the session
     const session = await Session.findById(sessionId);
     if (!session) {
       return res.status(404).json({ 
@@ -128,22 +96,15 @@ router.post('/game/emotion', async (req, res) => {
       });
     }
 
-    if (!session.isActive) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Session is not active' 
-      });
-    }
-
     // Validate that userId matches session
-    if (session.userId !== userId) {
+    if (session.userId.toString() !== userId.toString()) {
       return res.status(403).json({ 
         success: false,
         error: 'User ID does not match session' 
       });
     }
 
-    // Validate emotion types (you can expand this list)
+    // Validate emotion types
     const validEmotions = ['happy', 'sad', 'angry', 'fearful', 'surprised', 'disgusted', 'neutral', 
                           'frustrated', 'excited', 'confident', 'anxious', 'calm', 'focused', 'proud',
                           'fear', 'sadness', 'anger', 'frustration'];
@@ -154,100 +115,59 @@ router.post('/game/emotion', async (req, res) => {
       });
     }
 
-    // Ensure we have word and round number (required for tracking progress from round 1)
-    const currentRound = roundNumber || 1;
-    const currentWord = word || '';
-
-    if (!currentWord) {
+    // Validate difficulty
+    const validDifficulties = ['easy', 'medium', 'hard'];
+    const currentDifficulty = difficulty || 'easy';
+    if (!validDifficulties.includes(currentDifficulty)) {
       return res.status(400).json({ 
         success: false,
-        error: 'Word is required to track progress' 
+        error: 'Invalid difficulty. Must be: easy, medium, or hard' 
       });
     }
 
-    // Create emotion sample according to EmotionSample model schema
-    const emotionSample = new EmotionSample({
-      sessionId,
-      userId,
+    // Create emotion sample data
+    const emotionSample = {
+      word: word,
+      difficulty: currentDifficulty,
       emotion: emotion.toLowerCase(),
-      confidence: confidence || 0.5, // Default as per schema
-      roundNumber: currentRound,
-      word: currentWord,
-      timeTaken: timeTaken || 0,
-      timestamp: new Date()  // Default as per schema
-    });
+      confidence: confidence || 0.5
+    };
 
-    await emotionSample.save();
+    // Add emotion sample to session
+    session.emotionSamples.push(emotionSample);
+    session.roundsPlayed = session.emotionSamples.length;
 
-    // Determine next difficulty based on emotion (according to Session schema enum)
-    let nextDifficulty = session.difficulty;
+    await session.save();
+
+    // Determine next difficulty based on emotion
+    let nextDifficulty = currentDifficulty;
     let difficultyChanged = false;
 
-    // Emotion-based difficulty adaptation logic
     const positiveEmotions = ['happy', 'excited', 'confident', 'proud', 'calm', 'focused'];
     const negativeEmotions = ['sad', 'frustrated', 'angry', 'anxious', 'fearful', 'fear', 'sadness', 'anger', 'frustration'];
-    const neutralEmotions = ['neutral'];
 
     const emotionLower = emotion.toLowerCase();
     const confidenceThreshold = confidence || 0.5;
 
     if (positiveEmotions.includes(emotionLower)) {
       // Player seems happy/confident - can handle more challenge
-      if (session.difficulty === 'easy' && confidenceThreshold > 0.7) {
+      if (currentDifficulty === 'easy' && confidenceThreshold > 0.7) {
         nextDifficulty = 'medium';
         difficultyChanged = true;
-      } else if (session.difficulty === 'medium' && confidenceThreshold > 0.8) {
+      } else if (currentDifficulty === 'medium' && confidenceThreshold > 0.8) {
         nextDifficulty = 'hard';
         difficultyChanged = true;
       }
     } else if (negativeEmotions.includes(emotionLower)) {
       // Player seems frustrated/struggling - reduce challenge
-      if (session.difficulty === 'hard' && confidenceThreshold > 0.6) {
+      if (currentDifficulty === 'hard' && confidenceThreshold > 0.6) {
         nextDifficulty = 'medium';
         difficultyChanged = true;
-      } else if (session.difficulty === 'medium' && confidenceThreshold > 0.7) {
+      } else if (currentDifficulty === 'medium' && confidenceThreshold > 0.7) {
         nextDifficulty = 'easy';
         difficultyChanged = true;
       }
     }
-    // Neutral emotions maintain current difficulty
-
-    // Update session difficulty if changed and add to rounds
-    if (difficultyChanged) {
-      session.difficulty = nextDifficulty;
-    }
-
-    // Add/update round data in session according to Session schema (from round 1 onwards)
-    const existingRoundIndex = session.rounds.findIndex(r => r.roundNumber === currentRound);
-    
-    const roundData = {
-      roundNumber: currentRound,
-      word: currentWord,
-      difficulty: nextDifficulty,
-      timeTakenSeconds: timeTaken || 0,
-      finalEmotion: emotionLower,
-      emotionSampleIds: [emotionSample._id]
-    };
-
-    if (existingRoundIndex >= 0) {
-      // Update existing round - append emotion sample ID if not already present
-      const existingRound = session.rounds[existingRoundIndex];
-      if (!existingRound.emotionSampleIds.includes(emotionSample._id)) {
-        existingRound.emotionSampleIds.push(emotionSample._id);
-      }
-      // Update final emotion and other data
-      existingRound.finalEmotion = emotionLower;
-      existingRound.difficulty = nextDifficulty;
-      existingRound.timeTakenSeconds = Math.max(existingRound.timeTakenSeconds, timeTaken || 0);
-    } else {
-      // Add new round (this ensures round 1 and all subsequent rounds are tracked)
-      session.rounds.push(roundData);
-    }
-
-    // Update total words count (this tracks all words from round 1 onwards)
-    session.totalWords = session.rounds.length;
-
-    await session.save();
 
     res.json({
       success: true,
@@ -255,13 +175,12 @@ router.post('/game/emotion', async (req, res) => {
       difficulty_changed: difficultyChanged,
       emotion_recorded: emotionLower,
       confidence: confidenceThreshold,
-      round_number: currentRound,
-      word_recorded: currentWord,
+      word_recorded: word,
       session_id: sessionId,
-      total_rounds_completed: session.rounds.length,
+      total_samples: session.emotionSamples.length,
       message: difficultyChanged 
-        ? `Round ${currentRound} completed. Difficulty adjusted to ${nextDifficulty} based on emotion: ${emotionLower}`
-        : `Round ${currentRound} completed. Difficulty maintained at ${nextDifficulty}`
+        ? `Emotion data saved. Difficulty adjusted to ${nextDifficulty} based on emotion: ${emotionLower}`
+        : `Emotion data saved. Difficulty maintained at ${nextDifficulty}`
     });
 
   } catch (error) {
@@ -286,7 +205,7 @@ router.post('/game/emotion', async (req, res) => {
 // End game session
 router.post('/game/end', async (req, res) => {
   try {
-    const { sessionId } = req.body;
+    const { sessionId, durationSeconds } = req.body;
 
     if (!sessionId) {
       return res.status(400).json({ 
@@ -303,7 +222,7 @@ router.post('/game/end', async (req, res) => {
       });
     }
 
-    // Find and update session
+    // Find session
     const session = await Session.findById(sessionId);
     if (!session) {
       return res.status(404).json({ 
@@ -312,25 +231,9 @@ router.post('/game/end', async (req, res) => {
       });
     }
 
-    if (!session.isActive) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Session is already ended' 
-      });
-    }
-
-    // Calculate session duration according to Session schema
-    const endTime = new Date();
-    const durationInSeconds = Math.floor((endTime - session.startTime) / 1000);
-
     // Update session with end data
-    session.endTime = endTime;
-    session.isActive = false;
-    session.durationInSeconds = durationInSeconds;
-    
-    // Update totalWords if not already set
-    if (!session.totalWords) {
-      session.totalWords = session.rounds.length;
+    if (durationSeconds) {
+      session.durationSeconds = durationSeconds;
     }
 
     await session.save();
@@ -339,10 +242,10 @@ router.post('/game/end', async (req, res) => {
       success: true,
       message: 'Game session ended successfully',
       session_summary: {
-        duration_seconds: durationInSeconds,
-        total_words: session.totalWords,
-        rounds_completed: session.rounds.length,
-        final_difficulty: session.difficulty
+        duration_seconds: session.durationSeconds || 0,
+        total_samples: session.emotionSamples.length,
+        rounds_played: session.roundsPlayed || 0,
+        game_name: session.gameName
       }
     });
   } catch (error) {
@@ -437,9 +340,9 @@ router.get('/game/session/:sessionId', async (req, res) => {
       });
     }
 
-    // Find session with populated emotion samples
+    // Find session
     const session = await Session.findById(sessionId)
-      .populate('therapistId', 'name email')
+      .populate('userId', 'name email pid')
       .lean();
 
     if (!session) {
@@ -449,22 +352,19 @@ router.get('/game/session/:sessionId', async (req, res) => {
       });
     }
 
-    // Get all emotion samples for this session
-    const emotionSamples = await EmotionSample.find({ sessionId })
-      .sort({ timestamp: 1 })
-      .lean();
-
-    // Calculate session statistics
+    // Calculate session statistics from emotionSamples array
+    const emotionSamples = session.emotionSamples || [];
     const stats = {
       total_emotions_recorded: emotionSamples.length,
       average_confidence: emotionSamples.length > 0 
         ? (emotionSamples.reduce((sum, sample) => sum + sample.confidence, 0) / emotionSamples.length).toFixed(2)
         : 0,
       emotion_distribution: {},
-      difficulty_progression: session.rounds.map(round => ({
-        round: round.roundNumber,
-        difficulty: round.difficulty,
-        emotion: round.finalEmotion
+      difficulty_progression: emotionSamples.map((sample, index) => ({
+        order: index + 1,
+        word: sample.word,
+        difficulty: sample.difficulty,
+        emotion: sample.emotion
       }))
     };
 
@@ -477,7 +377,6 @@ router.get('/game/session/:sessionId', async (req, res) => {
       success: true,
       session: {
         ...session,
-        emotion_samples: emotionSamples,
         statistics: stats
       }
     });
@@ -494,7 +393,7 @@ router.get('/game/session/:sessionId', async (req, res) => {
 // Simplified emotion submission for current active session (auto-creates session if needed)
 router.post('/game/submit-emotion-simple', async (req, res) => {
   try {
-    const { userId, emotion, confidence, word, roundNumber } = req.body;
+    const { userId, emotion, confidence, word, difficulty } = req.body;
 
     if (!userId || !emotion) {
       return res.status(400).json({ 
@@ -518,25 +417,15 @@ router.post('/game/submit-emotion-simple', async (req, res) => {
       });
     }
 
-    // Find or create active session for this user
-    let session = await Session.findOne({ 
-      userId: user.pid, 
-      isActive: true 
-    }).sort({ startTime: -1 });
-
-    if (!session) {
-      // Create new session automatically
-      session = new Session({
-        userId: user.pid,
-        therapistId: user.therapistId,
-        game: 'snake',
-        startTime: new Date(),
-        difficulty: 'medium',
-        isActive: true,
-        rounds: []
-      });
-      await session.save();
-    }
+    // Create new session for each playthrough
+    const session = new Session({
+      userId: user._id,
+      gameName: 'Snake Word Game',
+      roundsPlayed: 0,
+      durationSeconds: 0,
+      emotionSamples: []
+    });
+    await session.save();
 
     // Validate emotion types
     const validEmotions = ['happy', 'sad', 'angry', 'fearful', 'surprised', 'disgusted', 'neutral', 
@@ -551,26 +440,25 @@ router.post('/game/submit-emotion-simple', async (req, res) => {
       });
     }
 
-    // Determine current round number
-    const currentRound = roundNumber || (session.rounds.length + 1);
-    const currentWord = word || `word_${currentRound}`;
+    const currentWord = word || 'word_1';
+    const currentDifficulty = difficulty || 'easy';
 
-    // Create emotion sample
-    const emotionSample = new EmotionSample({
-      sessionId: session._id,
-      userId: user.pid,
-      emotion: emotionLower,
-      confidence: confidence || 0.5,
-      roundNumber: currentRound,
+    // Create emotion sample data
+    const emotionSample = {
       word: currentWord,
-      timeTaken: 0, // Will be updated if provided
-      timestamp: new Date()
-    });
+      difficulty: currentDifficulty,
+      emotion: emotionLower,
+      confidence: confidence || 0.5
+    };
 
-    await emotionSample.save();
+    // Add emotion sample to session
+    session.emotionSamples.push(emotionSample);
+    session.roundsPlayed = session.emotionSamples.length;
 
-    // Update difficulty based on emotion
-    let nextDifficulty = session.difficulty;
+    await session.save();
+
+    // Determine next difficulty based on emotion
+    let nextDifficulty = currentDifficulty;
     let difficultyChanged = false;
 
     const positiveEmotions = ['happy', 'excited', 'confident', 'proud', 'calm', 'focused'];
@@ -578,52 +466,22 @@ router.post('/game/submit-emotion-simple', async (req, res) => {
     const confidenceLevel = confidence || 0.5;
 
     if (positiveEmotions.includes(emotionLower)) {
-      if (session.difficulty === 'easy' && confidenceLevel > 0.7) {
+      if (currentDifficulty === 'easy' && confidenceLevel > 0.7) {
         nextDifficulty = 'medium';
         difficultyChanged = true;
-      } else if (session.difficulty === 'medium' && confidenceLevel > 0.8) {
+      } else if (currentDifficulty === 'medium' && confidenceLevel > 0.8) {
         nextDifficulty = 'hard';
         difficultyChanged = true;
       }
     } else if (negativeEmotions.includes(emotionLower)) {
-      if (session.difficulty === 'hard' && confidenceLevel > 0.6) {
+      if (currentDifficulty === 'hard' && confidenceLevel > 0.6) {
         nextDifficulty = 'medium';
         difficultyChanged = true;
-      } else if (session.difficulty === 'medium' && confidenceLevel > 0.7) {
+      } else if (currentDifficulty === 'medium' && confidenceLevel > 0.7) {
         nextDifficulty = 'easy';
         difficultyChanged = true;
       }
     }
-
-    // Update session difficulty if changed
-    if (difficultyChanged) {
-      session.difficulty = nextDifficulty;
-    }
-
-    // Add/update round data
-    const existingRoundIndex = session.rounds.findIndex(r => r.roundNumber === currentRound);
-    const roundData = {
-      roundNumber: currentRound,
-      word: currentWord,
-      difficulty: nextDifficulty,
-      timeTakenSeconds: 0,
-      finalEmotion: emotionLower,
-      emotionSampleIds: [emotionSample._id]
-    };
-
-    if (existingRoundIndex >= 0) {
-      const existingRound = session.rounds[existingRoundIndex];
-      if (!existingRound.emotionSampleIds.includes(emotionSample._id)) {
-        existingRound.emotionSampleIds.push(emotionSample._id);
-      }
-      existingRound.finalEmotion = emotionLower;
-      existingRound.difficulty = nextDifficulty;
-    } else {
-      session.rounds.push(roundData);
-    }
-
-    session.totalWords = session.rounds.length;
-    await session.save();
 
     res.json({
       success: true,
@@ -633,10 +491,9 @@ router.post('/game/submit-emotion-simple', async (req, res) => {
       difficulty_changed: difficultyChanged,
       emotion: emotionLower,
       confidence: confidenceLevel,
-      round: currentRound,
       word: currentWord,
-      total_rounds: session.rounds.length,
-      message: `Emotion ${emotionLower} recorded for round ${currentRound}${difficultyChanged ? `. Difficulty adjusted to ${nextDifficulty}` : ''}`
+      total_samples: session.emotionSamples.length,
+      message: `Emotion ${emotionLower} recorded${difficultyChanged ? `. Difficulty adjusted to ${nextDifficulty}` : ''}`
     });
 
   } catch (error) {
@@ -657,7 +514,7 @@ router.post('/game/submit-emotion-simple', async (req, res) => {
   }
 });
 
-// Get current active session for a user
+// Get current active session for a user (most recent session)
 router.get('/game/current-session/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -684,40 +541,33 @@ router.get('/game/current-session/:userId', async (req, res) => {
       });
     }
 
-    // Find current active session
+    // Find most recent session for this user
     const session = await Session.findOne({ 
-      userId: user.pid, 
-      isActive: true 
+      userId: user._id
     })
-    .populate('therapistId', 'name email')
-    .sort({ startTime: -1 });
+    .populate('userId', 'name email pid')
+    .sort({ createdAt: -1 });
 
     if (!session) {
       return res.json({
         success: true,
         session: null,
-        message: 'No active session found'
+        message: 'No session found'
       });
     }
-
-    // Get emotion samples for this session
-    const emotionSamples = await EmotionSample.find({ sessionId: session._id })
-      .sort({ timestamp: -1 })
-      .limit(10); // Get last 10 emotion samples
 
     res.json({
       success: true,
       session: {
         sessionId: session._id,
         userId: session.userId,
-        therapistId: session.therapistId,
-        game: session.game,
-        difficulty: session.difficulty,
-        startTime: session.startTime,
-        totalRounds: session.rounds.length,
-        totalWords: session.totalWords,
-        rounds: session.rounds,
-        recentEmotions: emotionSamples
+        gameName: session.gameName,
+        roundsPlayed: session.roundsPlayed,
+        durationSeconds: session.durationSeconds,
+        totalSamples: session.emotionSamples.length,
+        recentEmotions: session.emotionSamples.slice(-10), // Get last 10 emotion samples
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt
       }
     });
 

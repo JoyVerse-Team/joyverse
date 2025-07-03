@@ -20,7 +20,9 @@ export default function TherapistLoginPage() {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-    const router = useRouter();
+  
+  const router = useRouter();
+  const { login } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -65,10 +67,23 @@ export default function TherapistLoginPage() {
       const result = await loginWithEmail(formData.email, formData.password);
       
       if (result.success && result.user) {
-        // Backend auth will automatically update the auth state
+        // Update auth state with logged in user
+        login(result.user);
+        
+        // Store therapist data separately for the dashboard
+        if (result.user.role === 'therapist') {
+          localStorage.setItem('therapist', JSON.stringify(result.user));
+        }
+        
         setMessage('Access granted. Welcome to your dashboard!');
-          setTimeout(() => {
-          router.push('/'); // Redirect to homepage where they'll see the logged in state
+        
+        setTimeout(() => {
+          // Redirect based on user role
+          if (result.user!.role === 'therapist') {
+            router.push('/therapist_dashboard'); // Redirect to therapist dashboard
+          } else {
+            router.push('/dashboard'); // Redirect to regular user dashboard
+          }
         }, 1500);
       } else {
         setMessage(result.message || 'Login failed');
