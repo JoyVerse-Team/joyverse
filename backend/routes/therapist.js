@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const User = require('../models/Users');
 const Therapist = require('../models/Therapist');
 const Session = require('../models/Session');
-const EmotionSample = require('../models/EmotionSample');
 
 const router = express.Router();
 
@@ -38,27 +37,33 @@ router.get('/students/:therapistId', async (req, res) => {
     const studentsWithStats = await Promise.all(
       students.map(async (student) => {
         // Get session count and average session time
-        const sessions = await Session.find({ userId: student.pid });
+        const sessions = await Session.find({ userId: student._id });
         const totalSessions = sessions.length;
         
         // Calculate average session time
-        const completedSessions = sessions.filter(s => s.endTime && s.startTime);
+        const completedSessions = sessions.filter(s => s.durationSeconds && s.durationSeconds > 0);
         const totalTime = completedSessions.reduce((sum, session) => {
-          const duration = (new Date(session.endTime) - new Date(session.startTime)) / (1000 * 60); // minutes
-          return sum + duration;
+          return sum + (session.durationSeconds / 60); // Convert to minutes
         }, 0);
         const averageTime = completedSessions.length > 0 ? Math.round(totalTime / completedSessions.length) : 0;
 
-        // Get recent emotions (from last 10 emotion samples)
-        const recentEmotions = await EmotionSample.find({ userId: student.pid })
-          .sort({ timestamp: -1 })
-          .limit(10)
-          .select('emotion');
+        // Get recent emotions (from last sessions)
+        const recentSessions = await Session.find({ userId: student._id })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .select('emotionSamples');
+
+        const recentEmotions = [];
+        recentSessions.forEach(session => {
+          if (session.emotionSamples && session.emotionSamples.length > 0) {
+            recentEmotions.push(...session.emotionSamples.slice(-2).map(sample => sample.emotion));
+          }
+        });
 
         // Get last session date
         const lastSession = sessions.length > 0 ? sessions.reduce((latest, session) => {
-          return new Date(session.startTime) > new Date(latest.startTime) ? session : latest;
-        }).startTime : null;
+          return new Date(session.createdAt) > new Date(latest.createdAt) ? session : latest;
+        }).createdAt : null;
 
         return {
           id: student.pid,
@@ -68,7 +73,7 @@ router.get('/students/:therapistId', async (req, res) => {
           gender: student.gender,
           totalSessions,
           averageTime,
-          recentEmotions: recentEmotions.map(e => e.emotion),
+          recentEmotions: recentEmotions.slice(0, 10), // Limit to 10 most recent emotions
           lastSession: lastSession || student.createdAt || new Date()
         };
       })
@@ -121,26 +126,24 @@ router.get('/student/:studentId/sessions', async (req, res) => {
 
     // Get all sessions for this student
     const sessions = await Session.find({ userId: studentId })
-      .populate('therapistId', 'name')
-      .sort({ startTime: -1 })
+      .sort({ createdAt: -1 })
       .lean();
 
     // Format sessions with additional data
     const sessionsWithDetails = sessions.map((session, index) => {
-      const duration = session.endTime && session.startTime 
-        ? Math.round((new Date(session.endTime) - new Date(session.startTime)) / (1000 * 60))
+      const duration = session.durationSeconds 
+        ? Math.round(session.durationSeconds / 60) // Convert to minutes
         : 0;
 
       return {
         id: session._id,
         sessionNumber: sessions.length - index, // Reverse numbering for chronological order
-        gameTitle: session.game === 'snake' ? 'Snake Word Game' : session.game,
+        gameTitle: session.gameName || 'Snake Word Game',
         studentName: student.name,
-        timestamp: session.startTime,
+        timestamp: session.createdAt,
         totalTime: duration,
-        difficulty: session.difficulty,
-        isActive: session.isActive,
-        rounds: session.rounds || []
+        roundsPlayed: session.roundsPlayed || 0,
+        totalSamples: session.emotionSamples ? session.emotionSamples.length : 0
       };
     });
 
@@ -192,44 +195,28 @@ router.get('/session/:sessionId/emotions', async (req, res) => {
       });
     }
 
-    // Get all emotion samples for this session
-    const emotionSamples = await EmotionSample.find({ sessionId: sessionId })
-      .sort({ timestamp: 1 })
-      .lean();
+    // Get all emotion samples from the session
+    const emotionSamples = session.emotionSamples || [];
 
     // Get student info
-    const student = await User.findOne({ pid: session.userId }).select('name pid');
-
-    // Group emotion samples by round
-    const roundsWithEmotions = session.rounds.map(round => {
-      const roundEmotions = emotionSamples.filter(
-        emotion => emotion.roundNumber === round.roundNumber
-      );
-
-      return {
-        ...round,
-        emotions: roundEmotions.map(emotion => ({
-          id: emotion._id,
-          timestamp: emotion.timestamp,
-          emotion: emotion.emotion,
-          confidence: emotion.confidence,
-          word: emotion.word,
-          timeTaken: emotion.timeTaken
-        }))
-      };
-    });
+    const student = await User.findById(session.userId).select('name pid');
 
     const sessionWithEmotions = {
       id: session._id,
       userId: session.userId,
       studentName: student ? student.name : 'Unknown Student',
-      game: session.game,
-      startTime: session.startTime,
-      endTime: session.endTime,
-      difficulty: session.difficulty,
-      isActive: session.isActive,
-      therapistName: session.therapistId ? session.therapistId.name : 'Unknown Therapist',
-      rounds: roundsWithEmotions,
+      gameName: session.gameName,
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
+      roundsPlayed: session.roundsPlayed,
+      durationSeconds: session.durationSeconds,
+      emotionSamples: emotionSamples.map((sample, index) => ({
+        order: index + 1,
+        word: sample.word,
+        difficulty: sample.difficulty,
+        emotion: sample.emotion,
+        confidence: sample.confidence
+      })),
       totalEmotionSamples: emotionSamples.length
     };
 
@@ -275,9 +262,9 @@ router.get('/dashboard/:therapistId', async (req, res) => {
 
     // Get recent sessions (last 10 across all students)
     const recentSessions = await Session.find({ 
-      userId: { $in: studentIds } 
+      userId: { $in: students.map(s => s._id) } 
     })
-    .sort({ startTime: -1 })
+    .sort({ createdAt: -1 })
     .limit(10)
     .lean();
 
@@ -296,23 +283,21 @@ router.get('/dashboard/:therapistId', async (req, res) => {
 
       // Get sessions for this day
       const daySessions = await Session.find({
-        userId: { $in: studentIds },
-        startTime: { $gte: date, $lt: nextDate }
+        userId: { $in: students.map(s => s._id) },
+        createdAt: { $gte: date, $lt: nextDate }
       }).lean();
 
-      // Get emotions for this day
-      const dayEmotions = await EmotionSample.find({
-        userId: { $in: studentIds },
-        timestamp: { $gte: date, $lt: nextDate }
-      }).lean();
+      // Get emotions for this day from sessions
+      const dayEmotions = [];
+      daySessions.forEach(session => {
+        if (session.emotionSamples && session.emotionSamples.length > 0) {
+          dayEmotions.push(...session.emotionSamples);
+        }
+      });
 
       // Calculate total time for the day
       const totalTime = daySessions.reduce((sum, session) => {
-        if (session.endTime && session.startTime) {
-          const duration = (new Date(session.endTime) - new Date(session.startTime)) / (1000 * 60);
-          return sum + duration;
-        }
-        return sum;
+        return sum + (session.durationSeconds || 0) / 60; // Convert to minutes
       }, 0);
 
       // Group emotions by type
@@ -326,10 +311,8 @@ router.get('/dashboard/:therapistId', async (req, res) => {
         sessions: daySessions.map(s => ({
           id: s._id,
           studentId: s.userId,
-          game: s.game,
-          duration: s.endTime && s.startTime 
-            ? Math.round((new Date(s.endTime) - new Date(s.startTime)) / (1000 * 60))
-            : 0
+          gameName: s.gameName,
+          duration: Math.round((s.durationSeconds || 0) / 60) // Convert to minutes
         })),
         totalTime: Math.round(totalTime),
         emotionSummary

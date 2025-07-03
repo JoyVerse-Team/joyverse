@@ -38,7 +38,7 @@ export default function HomePage() {
     }
   }, [loading]);
   // Navigation handlers
-  const handleLogin = () => navigateWithLoadingState('login', '/child-login')
+  const handleLogin = () => navigateWithLoadingState('login', '/role-selection')
   const handleSignup = () => navigateWithLoadingState('signup', '/child-login')
   const handleGamesClick = () => navigateWithLoadingState('games', '/games')
   const handleDashboardClick = () => navigateWithLoadingState('dashboard', '/dashboard')
