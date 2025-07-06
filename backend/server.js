@@ -17,8 +17,7 @@ app.use(express.json());
 // Connect to MongoDB with better error handling and retry logic
 const connectDB = async (retries = 5) => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb+srv://changeme:qwertyuiop@cluster0.pnkjx.mongodb.net/JoyVerse?retryWrites=true&w=majority&appName=Cluster0';
-    console.log('Attempting to connect to MongoDB...');
+    const mongoURI = process.env.MONGODB_URI ||'mongodb://localhost:27017/';
     console.log('Connection URI:', mongoURI.replace(/\/\/.*@/, '//***:***@')); // Hide credentials in logs
     
     await mongoose.connect(mongoURI, {
