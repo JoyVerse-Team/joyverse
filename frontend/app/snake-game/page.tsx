@@ -3,11 +3,14 @@
 import { useEffect, useState, useRef } from "react"
 import { SnakeGame } from "@/components/snake-game/snake-game"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Star, Sparkles } from "lucide-react"
+import { ArrowLeft, Star, Sparkles, Save } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { gameApiService } from "@/lib/game-api"
 import { GameStatus } from "@/components/snake-game/types"
+import { useGameSession } from "@/hooks/useGameSession"
+import { useAuth } from "@/components/auth-provider"
 import "./emotion-backgrounds.css"
+import { SaveNotification } from "@/components/SaveNotification"
 
 // Emotion to gradient mapping
 const emotionGradients = {
@@ -21,13 +24,43 @@ const emotionGradients = {
 
 export default function SnakeGamePage() {
   const router = useRouter()
+  const { user } = useAuth()
+  const { 
+    session, 
+    isLoading: sessionLoading, 
+    error: sessionError,
+    startSession, 
+    endSession, 
+    addEmotionData, 
+    completeWord, 
+    autoSave 
+  } = useGameSession()
+  
   const [backgroundEmotion, setBackgroundEmotion] = useState<string>("neutral")
   const [currentDifficulty, setCurrentDifficulty] = useState<number>(1)
   const [lastEmotionUpdate, setLastEmotionUpdate] = useState<string>("")
   const [isProcessingEmotion, setIsProcessingEmotion] = useState<boolean>(false)
   const [gameStatus, setGameStatus] = useState<GameStatus>(GameStatus.READY)
+  const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null)
+  const [saveNotification, setSaveNotification] = useState<{
+    show: boolean
+    message: string
+    type: 'success' | 'error' | 'info'
+  }>({ show: false, message: '', type: 'info' })
   const emotionIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const initialTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const currentWordRef = useRef<string>("")
+  const currentDifficultyRef = useRef<string>("easy")
+
+  // Helper function to convert difficulty number to string
+  const getDifficultyName = (difficultyNum: number): string => {
+    switch (difficultyNum) {
+      case 1: return "easy"
+      case 2: return "medium"
+      case 3: return "hard"
+      default: return "easy"
+    }
+  }
 
   // Function to start emotion detection
   const startEmotionDetection = () => {
@@ -66,12 +99,18 @@ export default function SnakeGamePage() {
     }
   }
   // Handle game status changes
-  const handleGameStatusChange = (status: GameStatus) => {
+  const handleGameStatusChange = async (status: GameStatus) => {
     console.log(`Game status changed: ${status}`)
     setGameStatus(status)
     
     if (status === GameStatus.PLAYING) {
+      // Start session when game begins
+      await handleGameStart()
       startEmotionDetection()
+    } else if (status === GameStatus.GAME_OVER) {
+      // End session when game is over
+      stopEmotionDetection()
+      await endSession()
     } else {
       stopEmotionDetection()
     }
@@ -107,14 +146,31 @@ export default function SnakeGamePage() {
         console.log(`Emotion ${emotion.emotion} not mapped to background gradient`)
       }
 
-      // Update difficulty based on emotion
-      try {
-        const updatedDifficulty = await gameApiService.updateDifficultyBasedOnEmotion(emotion.emotion)
-        setCurrentDifficulty(updatedDifficulty.difficulty)
-        console.log(`Difficulty updated: ${updatedDifficulty.difficulty} (${updatedDifficulty.difficultyName}) based on emotion: ${emotion.emotion}`)
-      } catch (difficultyError) {
-        console.error('Failed to update difficulty:', difficultyError)
-      }    } catch (error) {
+      // Store emotion data in the session for later difficulty adjustment
+      // but don't change difficulty during gameplay
+      if (session && session.isActive) {
+        console.log('📊 Adding emotion data to session:', {
+          word: currentWordRef.current || "playing",
+          emotion: emotion.emotion,
+          confidence: emotion.confidence,
+          difficulty: getDifficultyName(currentDifficulty)
+        })
+        
+        const success = await addEmotionData(
+          currentWordRef.current || "playing", 
+          emotion, 
+          getDifficultyName(currentDifficulty)
+        )
+        
+        if (success) {
+          console.log('✅ Emotion data successfully added to session')
+        } else {
+          console.error('❌ Failed to add emotion data to session')
+        }
+      } else {
+        console.warn('⚠️ No active session found for emotion data storage')
+      }
+    } catch (error) {
       console.error('Failed to capture emotion for update:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       setLastEmotionUpdate(`Error: ${errorMessage} at ${new Date().toLocaleTimeString()}`)
@@ -163,7 +219,99 @@ export default function SnakeGamePage() {
       stopEmotionDetection()
     }
   }, [])
+  // Handle game start
+  const handleGameStart = async () => {
+    if (!user?.id) {
+      console.error('No user found to start game')
+      return
+    }
+    
+    if (session && session.isActive) {
+      return
+    }
+
+    const sessionId = await startSession()
+    if (sessionId) {
+      console.log('🎮 Game session started:', sessionId)
+      setLastSaveTime(new Date())
+    }
+  }
+
+  // Handle word completion - this is when difficulty should be adjusted
+  const handleWordComplete = async (word: string) => {
+    currentWordRef.current = word
+    completeWord(word)
+    console.log('🎯 Word completed and saved:', word)
+    
+    // Debug: Log current session state
+    if (session) {
+      console.log('📊 Current session emotion samples:', {
+        totalSamples: session.emotionSamples.length,
+        samples: session.emotionSamples.map(s => ({
+          emotion: s.emotion,
+          confidence: s.confidence,
+          word: s.word,
+          timestamp: s.timestamp
+        }))
+      })
+    }
+    
+    // Now check if difficulty should be adjusted based on recent emotions
+    if (session && session.emotionSamples.length > 0) {
+      try {
+        // Get the most recent emotion from the session
+        const recentEmotions = session.emotionSamples.slice(-3) // Last 3 emotions
+        const mostRecentEmotion = recentEmotions[recentEmotions.length - 1]
+        
+        console.log('🔍 Checking recent emotions for difficulty adjustment:', {
+          totalEmotions: session.emotionSamples.length,
+          recentEmotions: recentEmotions.map(e => e.emotion),
+          mostRecent: mostRecentEmotion?.emotion
+        })
+        
+        if (mostRecentEmotion) {
+          const updatedDifficulty = await gameApiService.updateDifficultyBasedOnEmotion(mostRecentEmotion.emotion)
+          if (updatedDifficulty.difficulty !== currentDifficulty) {
+            setCurrentDifficulty(updatedDifficulty.difficulty)
+            console.log(`🎯 Difficulty adjusted after word completion: ${updatedDifficulty.difficultyName} based on recent emotion: ${mostRecentEmotion.emotion}`)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update difficulty after word completion:', error)
+      }
+    } else {
+      console.warn('⚠️ No emotion samples found in session for difficulty adjustment')
+    }
+  }
+
+  // Handle manual save
+  const handleManualSave = async () => {
+    await autoSave()
+    setLastSaveTime(new Date())
+    setSaveNotification({ show: true, message: 'Game progress saved!', type: 'success' })
+    console.log('💾 Manual save completed')
+  }
+
+  // Show notification when session is created
+  useEffect(() => {
+    if (session) {
+      setSaveNotification({
+        show: true,
+        message: 'Game session started! Your progress will be auto-saved.',
+        type: 'info'
+      })
+    }
+  }, [session])
+
   return (<div className="min-h-screen relative overflow-hidden">
+      {/* Save Notification */}
+      <SaveNotification 
+        show={saveNotification.show}
+        message={saveNotification.message}
+        type={saveNotification.type}
+        onClose={() => setSaveNotification(prev => ({ ...prev, show: false }))}
+      />
+      
       <div className="absolute inset-0 overflow-hidden">
         {/* Floating orbs */}
         <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full opacity-20 blur-xl animate-pulse"></div>
@@ -187,7 +335,7 @@ export default function SnakeGamePage() {
       </div>
 
       <div className="container mx-auto px-4 py-8 relative z-10">          {/* Back Button */}        
-        <div className="mb-6">
+        <div className="mb-6 flex justify-between items-center">
           <Button
             onClick={() => router.push("/")}
             variant="outline"
@@ -196,6 +344,33 @@ export default function SnakeGamePage() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Games
           </Button>
+          
+          {/* Session Status and Manual Save */}
+          <div className="flex items-center gap-4">
+            {session && (
+              <div className="flex items-center gap-2 text-white/80 text-sm">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                Session Active
+                {lastSaveTime && (
+                  <span className="text-white/60">
+                    • Last saved: {lastSaveTime.toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+            )}
+            
+            {session && (
+              <Button
+                onClick={handleManualSave}
+                variant="outline"
+                size="sm"
+                className="bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-300"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Progress
+              </Button>
+            )}
+          </div>
         </div>{/* Game Title */}
        {/* Game Container */}
         <div className="flex justify-center">
@@ -209,7 +384,11 @@ export default function SnakeGamePage() {
               
               {/* Content */}
               <div className="relative z-10">
-                <SnakeGame onGameStatusChange={handleGameStatusChange} onEmotionUpdate={handleEmotionUpdate} />
+                <SnakeGame 
+                  onGameStatusChange={handleGameStatusChange} 
+                  onEmotionUpdate={handleEmotionUpdate}
+                  onWordComplete={handleWordComplete}
+                />
               </div>
             </div>
             

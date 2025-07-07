@@ -32,19 +32,10 @@ router.post('/game/start', async (req, res) => {
       });
     }
 
-    // Create new session with simplified schema
-    // Validate therapistId if provided
-    if (therapistId && !mongoose.Types.ObjectId.isValid(therapistId)) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Invalid therapist ID format' 
-      });
-    }
-
     // Validate game type according to schema
     const validGames = ['snake', 'wordcatcher']; // Add wordcatcher game
-    const gameType = game || 'snake';
-    if (!validGames.includes(gameType)) {
+    const gameType = gameName || 'snake';
+    if (gameName && !validGames.includes(gameType)) {
       return res.status(400).json({ 
         success: false,
         error: 'Invalid game type. Supported games: ' + validGames.join(', ')
