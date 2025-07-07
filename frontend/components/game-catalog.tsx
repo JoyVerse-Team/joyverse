@@ -5,37 +5,26 @@ import GameCard from "./game-card"
 // Game data structure - easily expandable
 const games = [
   {
-    id: "spelling-quiz",
-    name: "Interactive Games",
-    description:
-      "Engaging word games like Snake Adventure that make spelling and reading fun while building essential literacy skills.",
-    difficulty: "Easy",
-    category: "Educational",
-    icon: "🎮",
-    color: "from-blue-500 to-blue-700",
-    route: "/games/spelling-quiz",
-  },
-  {
     id: "snake-game",
-    name: "AI Adaptation", 
+    name: "Snake Word Adventure",
     description:
-      "Advanced machine learning algorithms that understand each child's learning patterns and adjust content difficulty in real-time.",
-    difficulty: "Medium",
-    category: "Technology",
-    icon: "🧠",
-    color: "from-purple-500 to-purple-700",
+      "Guide the magical snake through enchanted gardens while collecting letters to form powerful words. Master spelling in this thrilling adventure!",
+    difficulty: "Easy",
+    category: "Spelling & Strategy",
+    icon: "🐍",
+    color: "from-emerald-500 to-green-700",
     route: "/snake-game",
   },
   {
-    id: "emotion-detection",
-    name: "Emotion Detection",
+    id: "car-game",
+    name: "WordCatcher Car Race", 
     description:
-      "Facial expression recognition technology that monitors engagement and adjusts the experience based on the child's emotional state.",
-    difficulty: "Advanced",
-    category: "AI Technology",
-    icon: "�",
-    color: "from-teal-500 to-teal-700",
-    route: "/emotion-detection",
+      "Drive through lanes to catch the correct letters and complete words! Navigate your car with precision timing in this high-speed word adventure.",
+    difficulty: "Medium",
+    category: "Driving & Vocabulary",
+    icon: "🚗",
+    color: "from-blue-500 to-purple-700",
+    route: "/car_game",
   },
   // Add more games here easily:
   // {

@@ -38,12 +38,12 @@ export default function HomePage() {
     }
   }, [loading]);
   // Navigation handlers
-  const handleLogin = () => navigateWithLoadingState('login', '/child-login')
-  const handleSignup = () => navigateWithLoadingState('signup', '/child-login')
+  const handleLogin = () => navigateWithLoadingState('login', '/role-selection')
+  const handleSignup = () => navigateWithLoadingState('signup', '/role-selection')
   const handleGamesClick = () => navigateWithLoadingState('games', '/games')
   const handleDashboardClick = () => navigateWithLoadingState('dashboard', '/dashboard')
   const handleProfileClick = () => navigateWithLoadingState('profile', '/profile')
-  const handleHeaderLogin = () => navigateWithLoadingState('headerLogin', '/child-login')
+  const handleHeaderLogin = () => navigateWithLoadingState('headerLogin', '/role-selection')
   const handleHeaderSignup = () => navigateWithLoadingState('headerSignup', '/role-selection')
   
   const handleDiscoverMore = () => {

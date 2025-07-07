@@ -422,6 +422,9 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
           if (newCollectedLetters.length === currentState.targetWord.length) {
             const newWordsCompleted = currentState.wordsCompleted + 1
             
+            // Call onWordComplete callback with the completed word
+            onWordComplete?.(currentState.targetWord)
+            
             if (newWordsCompleted >= TOTAL_WORDS) {
               setGameState(prev => ({
                 ...prev,

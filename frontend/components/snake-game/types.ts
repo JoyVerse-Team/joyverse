@@ -48,6 +48,6 @@ export interface SnakeGameState {
 export interface SnakeGameProps {
   canvasRef: RefObject<HTMLCanvasElement | null>
   initialWord?: string
-  onWordComplete?: () => string
+  onWordComplete?: (word: string) => void
   onLifeLoss?: () => void
 }
