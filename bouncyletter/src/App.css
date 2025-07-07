@@ -1,0 +1,86 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  font-family: 'Comic Sans MS', cursive;
+}
+
+#bouncy-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  position: relative;
+}
+
+#phaser-container {
+  width: 600px;
+  height: 400px;
+  border-radius: 20px;
+  background-color: #FFF3B0; /* Light honey yellow */
+  overflow: hidden;
+  box-shadow: 0 0 25px rgba(0, 128, 0, 0.6);
+  border: 6px solid #3cb371;
+  animation: bounceBorder 3s ease-in-out infinite alternate;
+  position: relative;
+  z-index: 2;
+}
+
+/* Animals outside Phaser */
+.animal {
+  position: absolute;
+  width: 80px;
+  height: auto;
+  z-index: 1;
+}
+
+.owl {
+  bottom: 20px;
+  right: 20px;
+}
+
+.monkey {
+  bottom: 20px;
+  left: 20px;
+}
+
+.turtle {
+  top: 20px;
+  left: 20px;
+}
+
+@keyframes bounceBorder {
+  0% {
+    transform: scale(1);
+    border-color: #3cb371;
+  }
+  100% {
+    transform: scale(1.02);
+    border-color: #2e8b57;
+  }
+}
+@keyframes monkeyDance {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(10deg); }
+  50% { transform: rotate(-10deg); }
+  75% { transform: rotate(10deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.dance {
+  animation: monkeyDance 0.6s ease-in-out;
+}
+@keyframes monkey-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+.monkey-dancing {
+  animation: monkey-bounce 0.6s ease-in-out 3;
+}
