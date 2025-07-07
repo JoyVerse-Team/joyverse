@@ -41,7 +41,20 @@ export default function HomePage() {
   const handleLogin = () => navigateWithLoadingState('login', '/role-selection')
   const handleSignup = () => navigateWithLoadingState('signup', '/role-selection')
   const handleGamesClick = () => navigateWithLoadingState('games', '/games')
-  const handleDashboardClick = () => navigateWithLoadingState('dashboard', '/dashboard')
+  
+  const handleDashboardClick = () => {
+    // Check if user is a therapist (either through auth provider or localStorage)
+    const storedTherapist = localStorage.getItem("therapist")
+    
+    if (user?.role === 'therapist' || storedTherapist) {
+      // Redirect to therapist dashboard
+      navigateWithLoadingState('therapist-dashboard', '/therapist_dashboard')
+    } else {
+      // Redirect to regular user dashboard
+      navigateWithLoadingState('dashboard', '/dashboard')
+    }
+  }
+  
   const handleProfileClick = () => navigateWithLoadingState('profile', '/profile')
   const handleHeaderLogin = () => navigateWithLoadingState('headerLogin', '/role-selection')
   const handleHeaderSignup = () => navigateWithLoadingState('headerSignup', '/role-selection')
