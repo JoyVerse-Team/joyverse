@@ -23,21 +23,21 @@ const games = [
     icon: Target,
     bgPattern: 'repeating-linear-gradient(45deg, rgba(16, 185, 129, 0.1) 0px, rgba(16, 185, 129, 0.1) 1px, transparent 1px, transparent 12px)'
   },
-  {
-    id: 'car-game',
-    title: 'WordCatcher Car Race',
-    description: 'Drive through lanes to catch the correct letters and complete words! Navigate your car with precision timing in this high-speed word adventure.',
-    difficulty: 'Medium',
-    category: 'Driving & Vocabulary',
-    emoji: '🚗',
-    gradientFrom: 'from-blue-400/80',
-    gradientTo: 'to-purple-600/80',
-    glowColor: 'shadow-blue-500/40',
-    route: '/car_game',
-    features: ['Car Driving', 'Letter Catching', 'Word Completion'],
-    icon: Zap,
-    bgPattern: 'repeating-linear-gradient(-45deg, rgba(59, 130, 246, 0.1) 0px, rgba(59, 130, 246, 0.1) 1px, transparent 1px, transparent 12px)'
-  }
+  // {
+  //   id: 'car-game',
+  //   title: 'WordCatcher Car Race',
+  //   description: 'Drive through lanes to catch the correct letters and complete words! Navigate your car with precision timing in this high-speed word adventure.',
+  //   difficulty: 'Medium',
+  //   category: 'Driving & Vocabulary',
+  //   emoji: '🚗',
+  //   gradientFrom: 'from-blue-400/80',
+  //   gradientTo: 'to-purple-600/80',
+  //   glowColor: 'shadow-blue-500/40',
+  //   route: '/car_game',
+  //   features: ['Car Driving', 'Letter Catching', 'Word Completion'],
+  //   icon: Zap,
+  //   bgPattern: 'repeating-linear-gradient(-45deg, rgba(59, 130, 246, 0.1) 0px, rgba(59, 130, 246, 0.1) 1px, transparent 1px, transparent 12px)'
+  // }
 ];
 
 export default function GamesPage() {
@@ -379,7 +379,7 @@ export default function GamesPage() {
                       <Target className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
                       Snake Adventure
                     </Button>
-                    <Button 
+                    {/* <Button 
                       onClick={() => router.push('/car_game')}
                       className="group px-8 py-4 text-lg font-bold rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-300 border-0"
                       style={{
@@ -391,7 +391,7 @@ export default function GamesPage() {
                     >
                       <Zap className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
                       Car Word Race
-                    </Button>
+                    </Button> */}
                   </div>
                 </div>
               </div>
