@@ -31,6 +31,11 @@ export interface GameSession {
   difficulty: string;
   isActive: boolean;
   rounds: GameRound[];
+  // Additional properties for therapist dashboard
+  roundsPlayed?: number;
+  totalSamples?: number;
+  studentId?: string;
+  emotionSummary?: { [emotion: string]: number };
 }
 
 export interface GameRound {
@@ -57,6 +62,19 @@ export interface WordData {
   difficulty: string;
   emotion: string;
   timeSpent: string;
+}
+
+export interface SessionEmotionData {
+  id: string;
+  userId: string;
+  studentName: string;
+  gameName: string;
+  createdAt: string;
+  updatedAt: string;
+  roundsPlayed: number;
+  durationSeconds: number;
+  emotionSamples: EmotionData[];
+  totalEmotionSamples: number;
 }
 
 export interface WeeklyData {
@@ -128,6 +146,8 @@ class TherapistApiService {
       // Transform the data to match the expected UI format
       return data.sessions.map((session: any) => ({
         ...session,
+        roundsPlayed: session.roundsPlayed || 0,
+        totalSamples: session.totalSamples || 0,
         // Backend returns sessions without rounds property, 
         // so we'll create a compatible structure for the UI
         rounds: session.emotionSamples ? session.emotionSamples.map((sample: any, index: number) => ({
@@ -151,7 +171,7 @@ class TherapistApiService {
   }
 
   // Get detailed emotion data for a specific session
-  async getSessionEmotions(sessionId: string, therapistId?: string): Promise<GameSession> {
+  async getSessionEmotions(sessionId: string, therapistId?: string): Promise<SessionEmotionData> {
     try {
       const queryParam = therapistId ? `?therapistId=${therapistId}` : '';
       const response = await fetch(`${API_BASE_URL}/therapist/session/${sessionId}/emotions${queryParam}`, {
@@ -172,33 +192,19 @@ class TherapistApiService {
 
       const session = data.session;
       
-      // Transform the data to match the expected UI format
+      // Return the session data directly for the emotion detail modal
+      // The backend returns: { id, userId, studentName, gameName, emotionSamples, etc. }
       return {
         id: session.id,
-        sessionNumber: 1, // Will be set by calling function
-        gameTitle: session.game === 'snake' ? 'Snake Word Game' : session.game,
+        userId: session.userId,
         studentName: session.studentName,
-        timestamp: session.startTime,
-        totalTime: session.endTime && session.startTime 
-          ? Math.round((new Date(session.endTime).getTime() - new Date(session.startTime).getTime()) / (1000 * 60))
-          : 0,
-        difficulty: session.difficulty,
-        isActive: session.isActive,
-        rounds: session.rounds.map((round: any) => ({
-          roundNumber: round.roundNumber,
-          word: round.word,
-          difficulty: round.difficulty,
-          timeTakenSeconds: round.timeTakenSeconds,
-          finalEmotion: round.finalEmotion,
-          emotions: round.emotions || [],
-          // Transform for UI compatibility
-          words: round.word ? [{
-            word: round.word,
-            difficulty: round.difficulty || 'Medium',
-            emotion: round.finalEmotion || 'Neutral',
-            timeSpent: round.timeTakenSeconds ? `${Math.round(round.timeTakenSeconds / 60)}` : '0'
-          }] : []
-        }))
+        gameName: session.gameName,
+        createdAt: session.createdAt,
+        updatedAt: session.updatedAt,
+        roundsPlayed: session.roundsPlayed || 0,
+        durationSeconds: session.durationSeconds || 0,
+        emotionSamples: session.emotionSamples || [],
+        totalEmotionSamples: session.totalEmotionSamples || 0
       };
     } catch (error) {
       console.error('Error fetching session emotions:', error);
@@ -293,6 +299,21 @@ export const localDataService = {
     }
     
     return therapistApiService.getStudentSessions(studentId, tId);
+  },
+
+  getSessionEmotions: async (sessionId: string, therapistId?: string): Promise<SessionEmotionData> => {
+    let tId = therapistId;
+    
+    // Get therapist from localStorage if not provided
+    if (!tId) {
+      const storedTherapist = localStorage.getItem("therapist");
+      if (storedTherapist) {
+        const therapist = JSON.parse(storedTherapist);
+        tId = therapist.id;
+      }
+    }
+    
+    return therapistApiService.getSessionEmotions(sessionId, tId);
   }
 };
 

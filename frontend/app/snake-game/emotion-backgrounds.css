@@ -35,7 +35,7 @@ body.emotion-neutral {
 }
 
 body.emotion-happy {
-  background: linear-gradient(270deg, #4a7a4a, #5d8d5d, #70a070, #83b383) !important;
+  background: linear-gradient(270deg, #4a7a62, #50598b, #a259ac, #8a6414) !important;
   background-size: 800% 800% !important;
   animation: emotionGradient 6s ease infinite !important;
   transition: none !important;

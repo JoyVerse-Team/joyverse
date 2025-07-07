@@ -45,6 +45,11 @@ export default function Dashboard() {
   const [selectedStudentSessions, setSelectedStudentSessions] = useState<GameSession[]>([])
   const [showStudentDetail, setShowStudentDetail] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  // Add new state for session emotion drill-down
+  const [selectedSession, setSelectedSession] = useState<GameSession | null>(null)
+  const [sessionEmotions, setSessionEmotions] = useState<any>(null)
+  const [showSessionDetail, setShowSessionDetail] = useState(false)
+  const [isLoadingEmotions, setIsLoadingEmotions] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -111,6 +116,25 @@ export default function Dashboard() {
           variant: "destructive"
         })
       }
+    }
+  }
+
+  const handleViewSessionEmotions = async (session: any) => {
+    setIsLoadingEmotions(true)
+    try {
+      const emotions = await localDataService.getSessionEmotions(session.id)
+      setSelectedSession(session)
+      setSessionEmotions(emotions)
+      setShowSessionDetail(true)
+    } catch (error) {
+      console.error('Error loading session emotions:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load session emotion data. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingEmotions(false)
     }
   }
 
@@ -255,40 +279,46 @@ export default function Dashboard() {
                   </CardHeader>
 
                   <CardContent>
-                    {/* Show only Round 1 */}
-                    {session.rounds.length > 0 && session.rounds[0].words && (
-                      <div className="border rounded-lg p-4 bg-gray-50">
-                        <h4 className="font-semibold text-gray-800 mb-3 flex items-center space-x-2">
-                          <div className="bg-blue-100 text-blue-700 rounded-full px-3 py-1 text-sm font-semibold">
-                            Round 1
+                    <div className="space-y-4">
+                      {/* Session Summary */}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                          <div>
+                            <div className="text-lg font-bold text-blue-600">{session.roundsPlayed || 0}</div>
+                            <div className="text-sm text-gray-600">Rounds Played</div>
                           </div>
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {session.rounds[0].words!.map((word: any, wordIndex: number) => (
-                            <div key={wordIndex} className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-2">
-                                    <Target className="h-4 w-4 text-purple-600" />
-                                    <span className="font-mono font-bold text-purple-700 text-lg">{word.word}</span>
-                                  </div>
-                                  <Badge className={`text-xs ${getDifficultyColor(word.difficulty)}`}>
-                                    {word.difficulty}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <Badge className={`text-xs ${getEmotionColor(word.emotion)}`}>{word.emotion}</Badge>
-                                  <div className="flex items-center space-x-1">
-                                    <Clock className="h-3 w-3 text-green-600" />
-                                    <span className="text-sm font-semibold text-green-700">{word.timeSpent}m</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                          <div>
+                            <div className="text-lg font-bold text-green-600">{session.totalSamples || 0}</div>
+                            <div className="text-sm text-gray-600">Emotion Samples</div>
+                          </div>
+                          <div>
+                            <div className="text-lg font-bold text-purple-600">{session.totalTime}m</div>
+                            <div className="text-sm text-gray-600">Duration</div>
+                          </div>
                         </div>
                       </div>
-                    )}
+
+                      {/* View Emotions Button */}
+                      <div className="flex justify-center">
+                        <Button
+                          onClick={() => handleViewSessionEmotions(session)}
+                          disabled={isLoadingEmotions}
+                          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold px-6 py-2"
+                        >
+                          {isLoadingEmotions ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Emotion Details
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -433,10 +463,22 @@ export default function Dashboard() {
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-3">
                                     <span className="text-sm text-gray-600">
-                                      {session.rounds.length} rounds completed
+                                      {session.roundsPlayed || 0} rounds completed
+                                    </span>
+                                    <span className="text-sm text-gray-600">
+                                      {session.totalSamples || 0} emotion samples
                                     </span>
                                   </div>
                                   <div className="flex items-center space-x-2">
+                                    <Button
+                                      onClick={() => handleViewSessionEmotions(session)}
+                                      disabled={isLoadingEmotions}
+                                      size="sm"
+                                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                                    >
+                                      <Eye className="h-3 w-3 mr-1" />
+                                      Emotions
+                                    </Button>
                                     <Clock className="h-4 w-4 text-gray-400" />
                                     <span className="text-sm">{session.totalTime}m total</span>
                                   </div>
@@ -534,6 +576,173 @@ export default function Dashboard() {
                         ))}
                       </div>
                     </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Session Emotion Detail Modal */}
+        {showSessionDetail && selectedSession && sessionEmotions && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold">Session Emotion Analysis</h2>
+                    <p className="text-indigo-100">
+                      {selectedSession.gameTitle} - {selectedSession.studentName}
+                    </p>
+                    <p className="text-indigo-100 text-sm">
+                      {new Date(selectedSession.timestamp).toLocaleDateString()} - {selectedSession.totalTime}m total
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setShowSessionDetail(false)
+                      setSelectedSession(null)
+                      setSessionEmotions(null)
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/20"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <div className="space-y-6">
+                  {/* Session Overview */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Target className="h-5 w-5" />
+                        <span>Session Overview</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-blue-50 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-blue-600 mb-1">
+                            {sessionEmotions.roundsPlayed || 0}
+                          </div>
+                          <div className="text-sm text-gray-600">Rounds Played</div>
+                        </div>
+                        <div className="bg-green-50 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-green-600 mb-1">
+                            {sessionEmotions.totalEmotionSamples || 0}
+                          </div>
+                          <div className="text-sm text-gray-600">Emotion Samples</div>
+                        </div>
+                        <div className="bg-purple-50 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-purple-600 mb-1">
+                            {Math.round((sessionEmotions.durationSeconds || 0) / 60)}m
+                          </div>
+                          <div className="text-sm text-gray-600">Total Duration</div>
+                        </div>
+                        <div className="bg-orange-50 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-orange-600 mb-1">
+                            {sessionEmotions.gameName || 'Unknown'}
+                          </div>
+                          <div className="text-sm text-gray-600">Game Type</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Emotion Samples */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <BookOpen className="h-5 w-5" />
+                        <span>Emotion Sampling Timeline</span>
+                      </CardTitle>
+                      <CardDescription>
+                        Chronological view of emotions detected during gameplay
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {sessionEmotions.emotionSamples && sessionEmotions.emotionSamples.length > 0 ? (
+                        <div className="space-y-3">
+                          {sessionEmotions.emotionSamples.map((sample: any, index: number) => (
+                            <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                  <div className="bg-indigo-100 text-indigo-700 rounded-full px-3 py-1 text-sm font-semibold">
+                                    Sample {sample.order}
+                                  </div>
+                                  {sample.word && (
+                                    <div className="flex items-center space-x-2">
+                                      <Target className="h-4 w-4 text-purple-600" />
+                                      <span className="font-mono font-bold text-purple-700 text-lg">
+                                        {sample.word}
+                                      </span>
+                                      {sample.difficulty && (
+                                        <Badge className={`text-xs ${getDifficultyColor(sample.difficulty)}`}>
+                                          {sample.difficulty}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                  <Badge className={`${getEmotionColor(sample.emotion)}`}>
+                                    {sample.emotion}
+                                  </Badge>
+                                  {sample.confidence && (
+                                    <div className="text-sm text-gray-600">
+                                      {Math.round(sample.confidence * 100)}% confidence
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <div className="text-gray-500 mb-2">No emotion samples recorded</div>
+                          <div className="text-sm text-gray-400">
+                            This session may not have completed emotion detection.
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Emotion Summary */}
+                  {sessionEmotions.emotionSamples && sessionEmotions.emotionSamples.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center space-x-2">
+                          <Calendar className="h-5 w-5" />
+                          <span>Emotion Summary</span>
+                        </CardTitle>
+                        <CardDescription>
+                          Distribution of emotions detected during this session
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                          {(() => {
+                            const emotionCounts: { [key: string]: number } = {};
+                            sessionEmotions.emotionSamples.forEach((sample: any) => {
+                              emotionCounts[sample.emotion] = (emotionCounts[sample.emotion] || 0) + 1;
+                            });
+                            return Object.entries(emotionCounts).map(([emotion, count]) => (
+                              <Badge key={emotion} className={`${getEmotionColor(emotion)} text-sm px-3 py-1`}>
+                                {emotion} ({count})
+                              </Badge>
+                            ));
+                          })()}
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               </div>

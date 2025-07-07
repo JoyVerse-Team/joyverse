@@ -176,9 +176,7 @@ router.get('/session/:sessionId/emotions', async (req, res) => {
     }
 
     // Get the session
-    const session = await Session.findById(sessionId)
-      .populate('therapistId', 'name')
-      .lean();
+    const session = await Session.findById(sessionId).lean();
 
     if (!session) {
       return res.status(404).json({
@@ -187,8 +185,18 @@ router.get('/session/:sessionId/emotions', async (req, res) => {
       });
     }
 
-    // If therapistId is provided, ensure the session belongs to this therapist
-    if (therapistId && session.therapistId._id.toString() !== therapistId) {
+    // Get student info to verify therapist ownership
+    const student = await User.findById(session.userId).select('name pid therapistId');
+    
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found for this session'
+      });
+    }
+
+    // If therapistId is provided, ensure the session belongs to this therapist (via student)
+    if (therapistId && student.therapistId && student.therapistId.toString() !== therapistId) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: Session does not belong to this therapist'
@@ -197,9 +205,6 @@ router.get('/session/:sessionId/emotions', async (req, res) => {
 
     // Get all emotion samples from the session
     const emotionSamples = session.emotionSamples || [];
-
-    // Get student info
-    const student = await User.findById(session.userId).select('name pid');
 
     const sessionWithEmotions = {
       id: session._id,
