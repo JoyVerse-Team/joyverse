@@ -46,9 +46,6 @@ export default function BouncyLettersGame() {
               Bouncy Letters
             </div>
             <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 text-yellow-400 fill-current drop-shadow-lg" />
-              ))}
             </div>
           </div>
           
@@ -59,13 +56,6 @@ export default function BouncyLettersGame() {
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Games
-            </Button>
-            <Button
-              onClick={() => router.push('/')}
-              className="px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border-0 bg-white/20 backdrop-blur-md text-white hover:bg-white/30"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Home
             </Button>
           </div>
         </div>
@@ -108,17 +98,14 @@ export default function BouncyLettersGame() {
       />
 
       {/* Instructions Panel */}
-      <div className="absolute top-20 right-8 p-4 rounded-xl shadow-lg z-20 max-w-xs bg-white/90 backdrop-blur-md">
-        <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-yellow-500" />
+      <div className="absolute top-20 right-4 p-4 rounded-xl shadow-lg z-20 max-w-xs bg-white/90 backdrop-blur-md">
+        <h3 className="text-lg font-bold text-gray-800 mb-1 flex items-center gap-2">
           How to Play
         </h3>
         <ul className="text-sm text-gray-700 space-y-1">
           <li>• Click the "Next Letter" button to drop letters</li>
           <li>• Click only the target letters shown at the top</li>
           <li>• Avoid clicking wrong letters</li>
-          <li>• You have 3 lives (hearts)</li>
-          <li>• Get the highest score possible!</li>
         </ul>
       </div>
 
