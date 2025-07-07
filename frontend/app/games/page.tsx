@@ -23,21 +23,21 @@ const games = [
     icon: Target,
     bgPattern: 'repeating-linear-gradient(45deg, rgba(16, 185, 129, 0.1) 0px, rgba(16, 185, 129, 0.1) 1px, transparent 1px, transparent 12px)'
   },
-  // {
-  //   id: 'car-game',
-  //   title: 'WordCatcher Car Race',
-  //   description: 'Drive through lanes to catch the correct letters and complete words! Navigate your car with precision timing in this high-speed word adventure.',
-  //   difficulty: 'Medium',
-  //   category: 'Driving & Vocabulary',
-  //   emoji: '🚗',
-  //   gradientFrom: 'from-blue-400/80',
-  //   gradientTo: 'to-purple-600/80',
-  //   glowColor: 'shadow-blue-500/40',
-  //   route: '/car_game',
-  //   features: ['Car Driving', 'Letter Catching', 'Word Completion'],
-  //   icon: Zap,
-  //   bgPattern: 'repeating-linear-gradient(-45deg, rgba(59, 130, 246, 0.1) 0px, rgba(59, 130, 246, 0.1) 1px, transparent 1px, transparent 12px)'
-  // }
+  {
+    id: 'bouncy-letters',
+    title: 'Bouncy Letters Challenge',
+    description: 'Test your letter recognition skills! Click the falling target letters while avoiding the wrong ones. Perfect for learning letter shapes and improving focus!',
+    difficulty: 'Easy',
+    category: 'Letter Recognition',
+    emoji: '🎯',
+    gradientFrom: 'from-orange-400/80',
+    gradientTo: 'to-red-600/80',
+    glowColor: 'shadow-orange-500/40',
+    route: '/bouncy-letters',
+    features: ['Letter Recognition', 'Hand-Eye Coordination', 'Focus Training'],
+    icon: Heart,
+    bgPattern: 'repeating-linear-gradient(-45deg, rgba(251, 146, 60, 0.1) 0px, rgba(251, 146, 60, 0.1) 1px, transparent 1px, transparent 12px)'
+  },
 ];
 
 export default function GamesPage() {
@@ -73,32 +73,6 @@ export default function GamesPage() {
                  backdropFilter: 'blur(20px)',
                  border: '1px solid rgba(16, 185, 129, 0.2)'
                }}>
-          </div>
-          
-          {/* Animated glass particles */}
-          <div className="absolute inset-0 overflow-hidden">
-            {[
-              { left: '15%', top: '25%', size: 'w-4 h-4', delay: '0s', duration: '8s' },
-              { left: '85%', top: '35%', size: 'w-3 h-3', delay: '2s', duration: '10s' },
-              { left: '35%', top: '65%', size: 'w-5 h-5', delay: '4s', duration: '7s' },
-              { left: '75%', top: '75%', size: 'w-2 h-2', delay: '1s', duration: '9s' },
-              { left: '55%', top: '20%', size: 'w-4 h-4', delay: '3s', duration: '6s' },
-              { left: '25%', top: '80%', size: 'w-3 h-3', delay: '5s', duration: '8s' }
-            ].map((particle, i) => (
-              <div
-                key={i}
-                className={`absolute ${particle.size} rounded-full animate-pulse opacity-40`}
-                style={{
-                  left: particle.left,
-                  top: particle.top,
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1))',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  animationDelay: particle.delay,
-                  animationDuration: particle.duration
-                }}
-              />
-            ))}
           </div>
         </div>
 
@@ -379,19 +353,19 @@ export default function GamesPage() {
                       <Target className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
                       Snake Adventure
                     </Button>
-                    {/* <Button 
-                      onClick={() => router.push('/car_game')}
+                    <Button 
+                      onClick={() => router.push('/bouncy-letters')}
                       className="group px-8 py-4 text-lg font-bold rounded-2xl shadow-2xl transform hover:scale-105 transition-all duration-300 border-0"
                       style={{
-                        background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(139, 92, 246, 0.6))',
+                        background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.8), rgba(239, 68, 68, 0.6))',
                         backdropFilter: 'blur(20px)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        border: '1px solid rgba(251, 146, 60, 0.3)',
                         color: 'white'
                       }}
                     >
-                      <Zap className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
-                      Car Word Race
-                    </Button> */}
+                      <Heart className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
+                      Bouncy Letters
+                    </Button>
                   </div>
                 </div>
               </div>
