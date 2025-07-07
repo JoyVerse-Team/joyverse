@@ -49,7 +49,7 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
     difficulty: 'level1' as Difficulty
   })
 
-  const TOTAL_WORDS = 10;
+  const TOTAL_WORDS = 5;
   const gameLoopRef = useRef<number | null>(null)
   const lastRenderTimeRef = useRef<number>(0)
   const gameStateRef = useRef<SnakeGameState>(gameState)
