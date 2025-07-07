@@ -10,6 +10,7 @@ import { LogOut, Eye, User, Clock, BookOpen, Calendar, X, Target } from "lucide-
 import { useToast } from "@/hooks/use-toast"
 import { localDataService, type Therapist, type Student, type GameSession, type WeeklyData } from "@/lib/therapist-api"
 
+
 const getEmotionColor = (emotion: string) => {
   const colors: { [key: string]: string } = {
     Happy: "bg-green-100 text-green-800",
@@ -98,7 +99,7 @@ export default function Dashboard() {
     })
     router.push("/")
   }
-
+ 
   const handleViewStudent = async (studentId: string) => {
     // Find the student data
     const student = students.find((s) => s.id === studentId)
@@ -162,7 +163,6 @@ export default function Dashboard() {
               </Badge>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-600">Welcome, {therapist.name}</span>
               <Button onClick={handleLogout} variant="outline" size="sm" className="flex items-center space-x-2">
                 <LogOut className="h-4 w-4" />
                 <span>Logout</span>
@@ -521,12 +521,45 @@ export default function Dashboard() {
                                   </div>
                                   <span className="text-lg font-semibold text-gray-800">{session.gameTitle}</span>
                                 </div>
-                                <div className="text-sm text-gray-500">
-                                  {new Date(session.timestamp).toLocaleDateString()}
+                                <div className="flex items-center space-x-3">
+                                  <Button
+                                    onClick={() => handleViewSessionEmotions(session)}
+                                    disabled={isLoadingEmotions}
+                                    size="sm"
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                                  >
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    {isLoadingEmotions ? 'Loading...' : 'View Emotions'}
+                                  </Button>
+                                  <div className="text-sm text-gray-500">
+                                    {new Date(session.timestamp).toLocaleDateString()}
+                                  </div>
                                 </div>
                               </CardTitle>
                             </CardHeader>
                             <CardContent className="p-6">
+                              {/* Session Summary */}
+                              <div className="mb-4 bg-gray-50 p-3 rounded-lg">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-center">
+                                  <div>
+                                    <div className="text-lg font-bold text-blue-600">{session.roundsPlayed || 0}</div>
+                                    <div className="text-xs text-gray-600">Rounds</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-lg font-bold text-green-600">{session.totalSamples || 0}</div>
+                                    <div className="text-xs text-gray-600">Emotion Samples</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-lg font-bold text-purple-600">{session.totalTime}m</div>
+                                    <div className="text-xs text-gray-600">Duration</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-lg font-bold text-orange-600">{session.rounds?.length || 0}</div>
+                                    <div className="text-xs text-gray-600">Words Completed</div>
+                                  </div>
+                                </div>
+                              </div>
+                              
                               <div className="space-y-4">
                                 {session.rounds.map((round) => (
                                   <div key={round.roundNumber} className="border rounded-lg p-4 bg-gray-50">

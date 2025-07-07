@@ -72,7 +72,6 @@ function RoleSelectionContent() {
                 <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400/20 via-purple-400/20 to-pink-400/20 rounded-lg blur-sm -z-10"></div>
               </div>
               <div className="px-3 py-1 text-xs font-semibold bg-gradient-to-r from-purple-500/80 to-pink-500/80 text-white rounded-full border border-white/30 shadow-lg">
-                v2.0 Beta
               </div>
             </Link>
             
@@ -114,8 +113,8 @@ function RoleSelectionContent() {
               
               <p className="text-xl lg:text-2xl text-white/90 leading-relaxed font-medium drop-shadow-lg max-w-3xl mx-auto">
                 {action === 'login' 
-                  ? 'Choose your account type to continue your <span class="text-cyan-300 font-bold">learning journey</span>'
-                  : 'Select your role to get started with <span class="text-purple-300 font-bold">personalized learning</span> experiences'
+                  ? 'Choose your account type to continue'
+                  : 'temp'
                 }
               </p>
             </div>
