@@ -10,8 +10,9 @@ export interface EmotionData {
 }
 
 interface StartGameResponse {
-  session_id: string
-  initial_difficulty: string
+  sessionId: string
+  gameName: string
+  success: boolean
   message: string
 }
 
@@ -87,14 +88,19 @@ class GameApiService {
     }
   }
 
-  async endGame(sessionId: string): Promise<void> {
+  async endGame(sessionId: string, durationSeconds?: number): Promise<void> {
     try {
+      const body: any = { sessionId }
+      if (durationSeconds !== undefined) {
+        body.durationSeconds = durationSeconds
+      }
+
       const response = await fetch(`${this.nodeBackendUrl}/api/game/end`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ sessionId }),
+        body: JSON.stringify(body),
       })
 
       if (!response.ok) {
@@ -102,7 +108,8 @@ class GameApiService {
       }
     } catch (error) {
       console.error('Error ending game:', error)
-      throw error    }
+      throw error
+    }
   }
 
   async detectEmotion(imageData: string): Promise<EmotionData> {
@@ -219,6 +226,41 @@ class GameApiService {
       }
     } catch (error) {
       console.error('Error submitting emotion to session:', error)
+      throw error
+    }
+  }
+
+  // New method to submit emotion data with updated session schema
+  async submitEmotionData(
+    userId: string,
+    sessionId: string,
+    emotion: EmotionData,
+    word: string,
+    difficulty: string
+  ): Promise<SubmitEmotionResponse> {
+    try {
+      const response = await fetch(`${this.nodeBackendUrl}/api/game/emotion`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          sessionId,
+          emotion: emotion.emotion,
+          confidence: emotion.confidence,
+          word,
+          difficulty,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to submit emotion: ${response.statusText}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error submitting emotion:', error)
       throw error
     }
   }

@@ -49,7 +49,7 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
     difficulty: 'level1' as Difficulty
   })
 
-  const TOTAL_WORDS = 10;
+  const TOTAL_WORDS = 5;
   const gameLoopRef = useRef<number | null>(null)
   const lastRenderTimeRef = useRef<number>(0)
   const gameStateRef = useRef<SnakeGameState>(gameState)
@@ -421,6 +421,9 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
 
           if (newCollectedLetters.length === currentState.targetWord.length) {
             const newWordsCompleted = currentState.wordsCompleted + 1
+            
+            // Call onWordComplete callback with the completed word
+            onWordComplete?.(currentState.targetWord)
             
             if (newWordsCompleted >= TOTAL_WORDS) {
               setGameState(prev => ({

@@ -11,6 +11,7 @@ import "@/app/fonts.css"
 interface SnakeGameComponentProps {
   onGameStatusChange?: (status: GameStatus) => void
   onEmotionUpdate?: (emotion: string) => void
+  onWordComplete?: (word: string) => void
 }
 
 // Simple dialog component for popups
@@ -64,7 +65,7 @@ const RetroDialog = ({ children, show, vibrant = false }: { children: React.Reac
   );
 };
 
-export function SnakeGame({ onGameStatusChange, onEmotionUpdate }: SnakeGameComponentProps) {
+export function SnakeGame({ onGameStatusChange, onEmotionUpdate, onWordComplete }: SnakeGameComponentProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showLifeLossPopup, setShowLifeLossPopup] = useState(false);
@@ -87,6 +88,10 @@ export function SnakeGame({ onGameStatusChange, onEmotionUpdate }: SnakeGameComp
   const { gameStatus, lives, targetWord, collectedLetters, difficulty, startGame, restartGame, pauseGame, resumeGame, adjustDifficultyByEmotion } =
     useSnakeGame({
       canvasRef,
+      onWordComplete: (word: string) => {
+        console.log('🎯 Word completed in game:', word)
+        onWordComplete?.(word)
+      },
       onLifeLoss: () => {
         setShowLifeLossPopup(true);
         setLifeLossResume(false);
