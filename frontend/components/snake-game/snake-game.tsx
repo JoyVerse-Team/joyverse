@@ -247,8 +247,8 @@ export function SnakeGame({ onGameStatusChange, onEmotionUpdate, onWordComplete 
           <div className="relative">
             <canvas
               className="border-2 border-gray-300 rounded-lg"
-              width={800}
-              height={550}
+              width={750}
+              height={600}
             />
           </div>
         </div>
@@ -299,8 +299,8 @@ export function SnakeGame({ onGameStatusChange, onEmotionUpdate, onWordComplete 
             <canvas
               ref={canvasRef}
               className="border-2 border-gray-300 rounded-lg"
-              width={800}
-              height={550}
+              width={750}
+              height={600}
             />
           </div>
 
