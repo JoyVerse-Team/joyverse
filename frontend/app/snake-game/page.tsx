@@ -42,6 +42,7 @@ export default function SnakeGamePage() {
   const [isProcessingEmotion, setIsProcessingEmotion] = useState<boolean>(false)
   const [gameStatus, setGameStatus] = useState<GameStatus>(GameStatus.READY)
   const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null)
+  const [currentEmotion, setCurrentEmotion] = useState<{ emotion: string, confidence: number } | null>(null)
   const [saveNotification, setSaveNotification] = useState<{
     show: boolean
     message: string
@@ -104,13 +105,17 @@ export default function SnakeGamePage() {
     setGameStatus(status)
     
     if (status === GameStatus.PLAYING) {
-      // Start session when game begins
-      await handleGameStart()
+      // Only start session if not already active
+      if (!session || !session.isActive) {
+        await handleGameStart()
+      }
       startEmotionDetection()
     } else if (status === GameStatus.GAME_OVER) {
       // End session when game is over
       stopEmotionDetection()
-      await endSession()
+      if (session && session.isActive) {
+        await endSession()
+      }
     } else {
       stopEmotionDetection()
     }
@@ -123,7 +128,8 @@ export default function SnakeGamePage() {
       setBackgroundEmotion(emotion)
     }
   }
-  // Function to capture emotion for both background and difficulty update
+  
+  // Function to capture emotion for background update only (not stored until word completion)
   const captureEmotionForUpdate = async () => {
     if (isProcessingEmotion) {
       console.log('Emotion processing already in progress, skipping...')
@@ -137,7 +143,12 @@ export default function SnakeGamePage() {
       console.log(`Emotion detected: ${emotion.emotion} (confidence: ${emotion.confidence})`)
       
       setLastEmotionUpdate(`${emotion.emotion} (${(emotion.confidence * 100).toFixed(1)}%) at ${new Date().toLocaleTimeString()}`)
-        // Only update background if the emotion has a gradient mapping and isn't 'surprised'
+      
+      // Store the current emotion for later use when word is completed
+      setCurrentEmotion(emotion)
+      console.log('💾 Current emotion stored for later use:', emotion.emotion)
+      
+      // Only update background if the emotion has a gradient mapping and isn't 'surprised'
       if (emotion.emotion in emotionGradients && emotion.emotion !== 'surprised') {
         console.log(`Updating background from ${backgroundEmotion} to ${emotion.emotion}`)
         setBackgroundEmotion(emotion.emotion)
@@ -146,37 +157,17 @@ export default function SnakeGamePage() {
         console.log(`Emotion ${emotion.emotion} not mapped to background gradient`)
       }
 
-      // Store emotion data in the session for later difficulty adjustment
-      // but don't change difficulty during gameplay
-      if (session && session.isActive) {
-        console.log('📊 Adding emotion data to session:', {
-          word: currentWordRef.current || "playing",
-          emotion: emotion.emotion,
-          confidence: emotion.confidence,
-          difficulty: getDifficultyName(currentDifficulty)
-        })
-        
-        const success = await addEmotionData(
-          currentWordRef.current || "playing", 
-          emotion, 
-          getDifficultyName(currentDifficulty)
-        )
-        
-        if (success) {
-          console.log('✅ Emotion data successfully added to session')
-        } else {
-          console.error('❌ Failed to add emotion data to session')
-        }
-      } else {
-        console.warn('⚠️ No active session found for emotion data storage')
-      }
+      // DON'T store emotion data here - only when word is completed
+      console.log('�️ Emotion captured for background update only, will be stored when word is completed')
+      
     } catch (error) {
       console.error('Failed to capture emotion for update:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       setLastEmotionUpdate(`Error: ${errorMessage} at ${new Date().toLocaleTimeString()}`)
     } finally {
       setIsProcessingEmotion(false)
-    }  }
+    }
+  }
   
   // Apply background gradient when emotion changes
   useEffect(() => {
@@ -226,22 +217,62 @@ export default function SnakeGamePage() {
       return
     }
     
+    // Prevent starting multiple sessions
     if (session && session.isActive) {
-      return
+      console.log('🎮 Session already active:', session.sessionId)
+      return session.sessionId
     }
 
+    if (sessionLoading) {
+      console.log('🎮 Session start already in progress')
+      return null
+    }
+
+    console.log('🎮 Starting new game session...')
     const sessionId = await startSession()
     if (sessionId) {
-      console.log('🎮 Game session started:', sessionId)
+      console.log('🎮 Game session started successfully:', sessionId)
       setLastSaveTime(new Date())
+      return sessionId
     }
+    
+    console.error('❌ Failed to start game session')
+    return null
   }
 
-  // Handle word completion - this is when difficulty should be adjusted
+  // Handle word completion - this is when difficulty should be adjusted AND emotion data stored
   const handleWordComplete = async (word: string) => {
     currentWordRef.current = word
     completeWord(word)
-    console.log('🎯 Word completed and saved:', word)
+    console.log('🎯 Word completed:', word)
+    
+    // Store emotion data only when word is completed (not during gameplay)
+    if (session && session.isActive && currentEmotion) {
+      console.log('📊 Storing emotion data for completed word:', {
+        word: word,
+        emotion: currentEmotion.emotion,
+        confidence: currentEmotion.confidence,
+        difficulty: getDifficultyName(currentDifficulty)
+      })
+      
+      const success = await addEmotionData(
+        word, 
+        currentEmotion, 
+        getDifficultyName(currentDifficulty)
+      )
+      
+      if (success) {
+        console.log('✅ Emotion data successfully stored for word completion')
+        // Clear the current emotion after storing
+        setCurrentEmotion(null)
+      } else {
+        console.error('❌ Failed to store emotion data for word completion')
+      }
+    } else if (!currentEmotion) {
+      console.warn('⚠️ No emotion data available to store for completed word')
+    } else {
+      console.warn('⚠️ No active session found for emotion data storage')
+    }
     
     // Debug: Log current session state
     if (session) {

@@ -124,8 +124,8 @@ router.get('/student/:studentId/sessions', async (req, res) => {
       });
     }
 
-    // Get all sessions for this student
-    const sessions = await Session.find({ userId: studentId })
+    // Get all sessions for this student using the MongoDB ObjectId
+    const sessions = await Session.find({ userId: student._id })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -335,6 +335,27 @@ router.get('/dashboard/:therapistId', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Get all therapists (for debugging)
+router.get('/list', async (req, res) => {
+  try {
+    const therapists = await Therapist.find({})
+      .select('-passwordHash')
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      therapists: therapists
+    });
+
+  } catch (error) {
+    console.error('Error fetching therapists:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

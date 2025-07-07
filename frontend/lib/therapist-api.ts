@@ -128,16 +128,21 @@ class TherapistApiService {
       // Transform the data to match the expected UI format
       return data.sessions.map((session: any) => ({
         ...session,
-        rounds: session.rounds.map((round: any) => ({
-          ...round,
-          // Transform round data to include words array for UI compatibility
-          words: round.word ? [{
-            word: round.word,
-            difficulty: round.difficulty || 'Medium',
-            emotion: round.finalEmotion || 'Neutral',
-            timeSpent: round.timeTakenSeconds ? `${Math.round(round.timeTakenSeconds / 60)}` : '0'
-          }] : []
-        }))
+        // Backend returns sessions without rounds property, 
+        // so we'll create a compatible structure for the UI
+        rounds: session.emotionSamples ? session.emotionSamples.map((sample: any, index: number) => ({
+          roundNumber: index + 1,
+          word: sample.word || 'Unknown',
+          difficulty: sample.difficulty || 'Medium',
+          finalEmotion: sample.emotion || 'Neutral',
+          timeTakenSeconds: 60, // Default time since we don't have this data
+          words: [{
+            word: sample.word || 'Unknown',
+            difficulty: sample.difficulty || 'Medium',
+            emotion: sample.emotion || 'Neutral',
+            timeSpent: '1' // Default since we don't have individual word times
+          }]
+        })) : []
       }));
     } catch (error) {
       console.error('Error fetching student sessions:', error);

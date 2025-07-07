@@ -193,10 +193,6 @@ router.post('/login', async (req, res) => {
     console.log('Login Debug Info:');
     console.log('- Role:', role);
     console.log('- User found:', !!user);
-    console.log('- Email from request:', password); // Note: logging password for debugging - remove this later
-    console.log('- Stored passwordHash:', user.passwordHash);
-    console.log('- Password comparison (===):', password === user.passwordHash);
-    
     if (role === 'therapist') {
       // For therapists, compare plain text passwords (as requested)
       isPasswordValid = password === user.passwordHash;

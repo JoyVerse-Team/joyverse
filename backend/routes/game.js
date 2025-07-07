@@ -123,8 +123,10 @@ router.post('/game/emotion', async (req, res) => {
     // Validate emotion types
     const validEmotions = ['happy', 'sad', 'angry', 'fearful', 'surprised', 'disgusted', 'neutral', 
                           'frustrated', 'excited', 'confident', 'anxious', 'calm', 'focused', 'proud',
-                          'fear', 'sadness', 'anger', 'frustration'];
-    if (!validEmotions.includes(emotion.toLowerCase())) {
+                          'fear', 'sadness', 'anger', 'frustration', 'disgust', 'surprise', 'joy'];
+    const emotionLower = emotion.toLowerCase();
+    if (!validEmotions.includes(emotionLower)) {
+      console.warn(`Invalid emotion received: ${emotion}. Supported emotions: ${validEmotions.join(', ')}`);
       return res.status(400).json({ 
         success: false,
         error: 'Invalid emotion type. Supported emotions: ' + validEmotions.join(', ')
@@ -145,24 +147,25 @@ router.post('/game/emotion', async (req, res) => {
     const emotionSample = {
       word: word,
       difficulty: currentDifficulty,
-      emotion: emotion.toLowerCase(),
+      emotion: emotionLower,
       confidence: confidence || 0.5
     };
 
     // Add emotion sample to session
+    console.log('📊 Adding emotion sample to session:', emotionSample);
     session.emotionSamples.push(emotionSample);
     session.roundsPlayed = session.emotionSamples.length;
 
-    await session.save();
+    const savedSession = await session.save();
+    console.log('✅ Session saved successfully. Total samples:', savedSession.emotionSamples.length);
 
     // Determine next difficulty based on emotion
     let nextDifficulty = currentDifficulty;
     let difficultyChanged = false;
 
-    const positiveEmotions = ['happy', 'excited', 'confident', 'proud', 'calm', 'focused'];
+    const positiveEmotions = ['happy', 'excited', 'confident', 'proud', 'calm', 'focused', 'joy'];
     const negativeEmotions = ['sad', 'frustrated', 'angry', 'anxious', 'fearful', 'fear', 'sadness', 'anger', 'frustration'];
 
-    const emotionLower = emotion.toLowerCase();
     const confidenceThreshold = confidence || 0.5;
 
     if (positiveEmotions.includes(emotionLower)) {
@@ -468,10 +471,12 @@ router.post('/game/submit-emotion-simple', async (req, res) => {
     };
 
     // Add emotion sample to session
+    console.log('📊 Adding emotion sample to session:', emotionSample);
     session.emotionSamples.push(emotionSample);
     session.roundsPlayed = session.emotionSamples.length;
 
-    await session.save();
+    const savedSession = await session.save();
+    console.log('✅ Session saved successfully. Total samples:', savedSession.emotionSamples.length);
 
     // Determine next difficulty based on emotion
     let nextDifficulty = currentDifficulty;

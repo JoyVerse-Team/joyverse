@@ -175,18 +175,9 @@ export function useGameSession() {
     try {
       const durationSeconds = Math.floor((new Date().getTime() - session.startTime.getTime()) / 1000)
       
-      // Use sendBeacon for reliability
-      const data = JSON.stringify({
-        sessionId: session.sessionId,
-        durationSeconds
-      })
-
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(`${process.env.NEXT_PUBLIC_API_URL}/game/end`, data)
-      } else {
-        // Fallback to regular fetch
-        await gameApiService.endGame(session.sessionId, durationSeconds)
-      }
+      // Use regular fetch instead of sendBeacon for reliability
+      await gameApiService.endGame(session.sessionId, durationSeconds)
+      console.log('💾 Auto-save completed successfully')
     } catch (error) {
       console.error('❌ Auto-save failed:', error)
     }
