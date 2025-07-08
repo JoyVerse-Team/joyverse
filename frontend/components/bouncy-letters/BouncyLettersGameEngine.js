@@ -2,17 +2,40 @@ import * as Phaser from "phaser";
 
 let gameInstance = null;
 
+// Global emotion state that can be updated from React component
+let globalEmotionState = {
+  currentEmotion: 'neutral',
+  onEmotionChange: null
+};
+
+// Function to update emotion from React component
+export const updateGameEmotion = (emotion, callback) => {
+  globalEmotionState.currentEmotion = emotion;
+  globalEmotionState.onEmotionChange = callback;
+  console.log(`Game emotion updated to: ${emotion}`);
+};
+
 class BouncyLettersScene extends Phaser.Scene {
   constructor() {
     super("BouncyLetters");
     this.levels = ['b', 'd', 'p', 'q'];
     this.level = 0;
+    this.emotionColors = {
+      'happy': '#FFD700',
+      'sad': '#4682B4', 
+      'neutral': '#808080',
+      'surprise': '#FF6347',
+      'angry': '#DC143C',
+      'fear': '#4B0082',
+      'disgust': '#9ACD32'
+    };
   }
 
   init(data) {
     this.level = data.level || 0;
     this.targetLetter = this.levels[this.level % this.levels.length];
     this.passedEmotion = data.emotion || "neutral";
+    this.currentEmotion = this.passedEmotion;
     this.score = 0;
     this.misses = 0;
     this.maxLives = 3;
@@ -20,6 +43,7 @@ class BouncyLettersScene extends Phaser.Scene {
     this.livesText = null;
     this.instructionText = null;
     this.letters = null;
+    this.emotionIndicator = null;
   }
 
   preload() {
@@ -36,6 +60,9 @@ class BouncyLettersScene extends Phaser.Scene {
     const buttonFontSize = Math.min(gameWidth, gameHeight) * 0.03;
     const letterFontSize = Math.min(gameWidth, gameHeight) * 0.04;
     
+    // Add emotion-based background tint
+    this.updateEmotionEffects();
+    
     this.scoreText = this.add.text(20, 20, "Score: 0", {
       fontSize: `${baseFontSize}px`,
       color: "#000",
@@ -50,6 +77,13 @@ class BouncyLettersScene extends Phaser.Scene {
     this.instructionText = this.add.text(gameWidth / 2, 20, `Catch all "${this.targetLetter}"s`, {
       fontSize: `${baseFontSize}px`,
       color: "#000",
+      fontStyle: "bold",
+    }).setOrigin(0.5, 0);
+
+    // Add emotion indicator
+    this.emotionIndicator = this.add.text(gameWidth / 2, 50, `Emotion: ${this.currentEmotion}`, {
+      fontSize: `${baseFontSize * 0.8}px`,
+      color: this.emotionColors[this.currentEmotion] || "#000",
       fontStyle: "bold",
     }).setOrigin(0.5, 0);
 
@@ -71,6 +105,21 @@ class BouncyLettersScene extends Phaser.Scene {
     this.gameWidth = gameWidth;
     this.gameHeight = gameHeight;
     this.letterFontSize = letterFontSize;
+  }
+
+  updateEmotionEffects() {
+    // Update emotion from global state
+    if (globalEmotionState.currentEmotion !== this.currentEmotion) {
+      this.currentEmotion = globalEmotionState.currentEmotion;
+      
+      // Update emotion indicator if it exists
+      if (this.emotionIndicator) {
+        this.emotionIndicator.setText(`Emotion: ${this.currentEmotion}`);
+        this.emotionIndicator.setColor(this.emotionColors[this.currentEmotion] || "#000");
+      }
+      
+      console.log(`Game emotion updated to: ${this.currentEmotion}`);
+    }
   }
 
   dropLetter() {
@@ -125,22 +174,14 @@ class BouncyLettersScene extends Phaser.Scene {
   }
 
   update() {
-    // Calculate responsive fall limit - letters should disappear before hitting the button
-    const fallLimitY = this.gameHeight - 120; // Stop well above the button
+    // Check for emotion changes and update effects
+    this.updateEmotionEffects();
 
-    this.letters.getChildren().forEach((letter) => {
+    // Update falling letters
+    this.letters.children.entries.forEach((letter) => {
       letter.y += letter.getData("speed");
-
-      if (letter.y > fallLimitY) {
-        // Only count as a miss if the letter is the target letter
-        if (letter.getData("letter") === this.targetLetter) {
-          this.misses++;
-          this.updateLives();
-
-          if (this.misses >= this.maxLives) {
-            this.endGame("Game Over");
-          }
-        }
+      if (letter.y > this.gameHeight) {
+        this.letters.remove(letter);
         letter.destroy();
       }
     });

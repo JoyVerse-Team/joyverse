@@ -1,18 +1,116 @@
 "use client"
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Home, Trophy, Star } from 'lucide-react';
+import { gameApiService } from '@/lib/game-api';
+
+// Emotion to background mapping
+const emotionBackgrounds: Record<string, string> = {
+  'happy': '/bouncy_public/assets/backgrounds/bg_happy.png',
+  'neutral': '/bouncy_public/assets/backgrounds/bg_neutal.png', // Note: keeping original typo
+  'sad': '/bouncy_public/assets/backgrounds/bg_sad.png',
+  'surprise': '/bouncy_public/assets/backgrounds/bg_surprise.png',
+  'angry': '/bouncy_public/assets/backgrounds/bg_neutal.png', // fallback to neutral
+  'fear': '/bouncy_public/assets/backgrounds/bg_sad.png', // fallback to sad
+  'disgust': '/bouncy_public/assets/backgrounds/bg_neutal.png' // fallback to neutral
+};
 
 export default function BouncyLettersGame() {
   const monkeyRef = useRef<HTMLImageElement>(null);
   const router = useRouter();
+  const [currentEmotion, setCurrentEmotion] = useState('neutral');
+  const [currentBackground, setCurrentBackground] = useState(emotionBackgrounds['neutral']);
+  const [isEmotionDetecting, setIsEmotionDetecting] = useState(false);
+  const [lastEmotionUpdate, setLastEmotionUpdate] = useState<string>("");
+  const [isProcessingEmotion, setIsProcessingEmotion] = useState<boolean>(false);
+  const emotionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Function to change background based on emotion
+  const changeBackgroundForEmotion = (emotion: string) => {
+    const newBackground = emotionBackgrounds[emotion] || emotionBackgrounds['neutral'];
+    if (newBackground !== currentBackground) {
+      setCurrentBackground(newBackground);
+      setCurrentEmotion(emotion);
+      console.log(`Background changed to: ${emotion} - ${newBackground}`);
+      
+      // Also update the game engine
+      import('./BouncyLettersGameEngine').then(({ updateGameEmotion }) => {
+        updateGameEmotion(emotion);
+      });
+    }
+  };
+
+  // Function to start emotion detection
+  const startEmotionDetection = () => {
+    console.log('Starting emotion detection for bouncy letters...');
+    setIsEmotionDetecting(true);
+    
+    // Clear any existing intervals
+    if (emotionIntervalRef.current) {
+      clearInterval(emotionIntervalRef.current);
+    }
+
+    // Start emotion detection every 5 seconds
+    emotionIntervalRef.current = setInterval(() => {
+      captureEmotionForBackground();
+    }, 5000);
+
+    // Initial emotion capture after 2 seconds
+    setTimeout(() => {
+      captureEmotionForBackground();
+    }, 2000);
+  };
+
+  // Function to stop emotion detection
+  const stopEmotionDetection = () => {
+    console.log('Stopping emotion detection...');
+    setIsEmotionDetecting(false);
+    
+    if (emotionIntervalRef.current) {
+      clearInterval(emotionIntervalRef.current);
+      emotionIntervalRef.current = null;
+    }
+  };
+
+  // Function to capture emotion and update background
+  const captureEmotionForBackground = async () => {
+    if (isProcessingEmotion) {
+      console.log('Emotion processing already in progress, skipping...');
+      return;
+    }
+
+    setIsProcessingEmotion(true);
+    try {
+      console.log('Capturing emotion for background update...');
+      const emotion = await gameApiService.captureAndDetectEmotion();
+      console.log(`Emotion detected: ${emotion.emotion} (confidence: ${emotion.confidence})`);
+      
+      setLastEmotionUpdate(`${emotion.emotion} (${(emotion.confidence * 100).toFixed(1)}%) at ${new Date().toLocaleTimeString()}`);
+      
+      // Update background if emotion changed and confidence is high enough
+      if (emotion.confidence > 0.6 && emotion.emotion !== currentEmotion) {
+        changeBackgroundForEmotion(emotion.emotion);
+      }
+      
+    } catch (error) {
+      console.error('Failed to capture emotion:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setLastEmotionUpdate(`Error: ${errorMessage} at ${new Date().toLocaleTimeString()}`);
+    } finally {
+      setIsProcessingEmotion(false);
+    }
+  };
 
   useEffect(() => {
     // Import the game engine dynamically
     const loadGame = async () => {
-      const { startBouncyLettersGame } = await import('./BouncyLettersGameEngine');
-      startBouncyLettersGame("phaser-container", "neutral", () => {
+      const { startBouncyLettersGame, updateGameEmotion } = await import('./BouncyLettersGameEngine');
+      
+      // Initialize emotion state in game engine
+      updateGameEmotion(currentEmotion);
+      
+      startBouncyLettersGame("phaser-container", currentEmotion, () => {
         if (monkeyRef.current) {
           monkeyRef.current.classList.add("monkey-dance");
           setTimeout(() => {
@@ -25,14 +123,37 @@ export default function BouncyLettersGame() {
     };
     
     loadGame();
+    
+    // Start emotion detection when game loads
+    startEmotionDetection();
+    
+    // Cleanup on unmount
+    return () => {
+      stopEmotionDetection();
+    };
+  }, []);
+
+  // Effect to update game emotion when currentEmotion changes
+  useEffect(() => {
+    // Update game engine emotion when emotion changes
+    import('./BouncyLettersGameEngine').then(({ updateGameEmotion }) => {
+      updateGameEmotion(currentEmotion);
+    });
+  }, [currentEmotion]);
+
+  // Cleanup effect for emotion detection
+  useEffect(() => {
+    return () => {
+      stopEmotionDetection();
+    };
   }, []);
 
   return (
     <div 
-      className="min-h-screen relative overflow-hidden"
+      className={`min-h-screen relative overflow-hidden transition-all duration-1000 ease-in-out emotion-${currentEmotion}`}
       id="bouncy-container"
       style={{
-        backgroundImage: "url('/assets/backgrounds/bg_happy.png')",
+        backgroundImage: `url('${currentBackground}')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
@@ -60,6 +181,73 @@ export default function BouncyLettersGame() {
           </div>
         </div>
       </header>
+
+      {/* Emotion Detection Panel */}
+      <div className="absolute top-20 left-4 p-4 rounded-xl shadow-lg z-20 max-w-xs bg-white/90 backdrop-blur-md emotion-panel">
+        <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+          🎭 Emotion Detection
+          {isEmotionDetecting && (
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          )}
+        </h3>
+        <div className="space-y-2">
+          <div className="text-sm">
+            <span className="font-medium">Current: </span>
+            <span className="capitalize font-bold text-blue-600">{currentEmotion}</span>
+          </div>
+          {lastEmotionUpdate && (
+            <div className="text-xs text-gray-600 bg-gray-100 p-2 rounded">
+              Last: {lastEmotionUpdate}
+            </div>
+          )}
+          <div className="text-xs text-gray-600">
+            Background changes with your emotions!
+          </div>
+          
+          {/* Emotion detection controls */}
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={isEmotionDetecting ? stopEmotionDetection : startEmotionDetection}
+              className={`text-xs px-3 py-1 rounded transition-colors ${
+                isEmotionDetecting 
+                  ? 'bg-red-500 text-white hover:bg-red-600' 
+                  : 'bg-green-500 text-white hover:bg-green-600'
+              }`}
+            >
+              {isEmotionDetecting ? 'Stop' : 'Start'} Detection
+            </button>
+            <button
+              onClick={captureEmotionForBackground}
+              disabled={isProcessingEmotion}
+              className="text-xs px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-400"
+            >
+              {isProcessingEmotion ? 'Detecting...' : 'Detect Now'}
+            </button>
+          </div>
+          
+          {/* Manual emotion testing buttons */}
+          <div className="mt-3">
+            <div className="text-xs font-medium mb-1">Test Emotions:</div>
+            <div className="grid grid-cols-2 gap-1">
+              {Object.keys(emotionBackgrounds).filter(emotion => 
+                ['happy', 'sad', 'neutral', 'surprise'].includes(emotion)
+              ).map((emotion) => (
+                <button
+                  key={emotion}
+                  onClick={() => changeBackgroundForEmotion(emotion)}
+                  className={`text-xs px-2 py-1 rounded transition-colors emotion-button ${
+                    currentEmotion === emotion 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {emotion.charAt(0).toUpperCase() + emotion.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
       {/* Animal Characters */}
       <img
         src="/assets/animals/owl.png"
@@ -119,6 +307,60 @@ export default function BouncyLettersGame() {
         
         .monkey-dance {
           animation: monkey-dance 0.6s ease-in-out;
+        }
+
+        /* Enhanced background transition */
+        #bouncy-container {
+          transition: background-image 1s ease-in-out;
+        }
+
+        /* Emotion panel animations */
+        .emotion-panel {
+          backdrop-filter: blur(10px);
+          animation: slideInLeft 0.5s ease-out;
+        }
+
+        @keyframes slideInLeft {
+          from {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        /* Button hover effects */
+        .emotion-button {
+          transition: all 0.2s ease-in-out;
+        }
+
+        .emotion-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Phaser container enhancement */
+        #phaser-container {
+          transition: box-shadow 0.3s ease-in-out;
+        }
+
+        /* Emotion-based glow effects */
+        .emotion-happy #phaser-container {
+          box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+        }
+
+        .emotion-sad #phaser-container {
+          box-shadow: 0 0 30px rgba(70, 130, 180, 0.6);
+        }
+
+        .emotion-surprise #phaser-container {
+          box-shadow: 0 0 30px rgba(255, 99, 71, 0.6);
+        }
+
+        .emotion-neutral #phaser-container {
+          box-shadow: 0 0 25px rgba(60, 179, 113, 0.6);
         }
       `}</style>
     </div>
