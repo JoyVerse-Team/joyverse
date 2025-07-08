@@ -15,7 +15,7 @@ router.post('/signup', async (req, res) => {
     if (!name || !email || !password || !therapistUID) {
       return res.status(400).json({
         success: false,
-        message: 'Required fields: name, email, password, therapistUID'
+        message: 'name, email, password, age, gender, therapistUID'
       });
     }
 
