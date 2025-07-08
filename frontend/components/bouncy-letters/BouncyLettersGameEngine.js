@@ -150,6 +150,10 @@ class BouncyLettersScene extends Phaser.Scene {
           monkey.classList.add("dance");
           setTimeout(() => monkey.classList.remove("dance"), 600);
         }
+        // End game if score reaches 5
+        if (this.score >= 5) {
+          this.endGame("Well Done!");
+        }
       } else {
         text.setColor("red");
         this.misses++;
@@ -160,6 +164,7 @@ class BouncyLettersScene extends Phaser.Scene {
         text.destroy();
       });
 
+      // End game if lives are finished
       if (this.misses >= this.maxLives) {
         this.endGame("Game Over");
       }
