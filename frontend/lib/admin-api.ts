@@ -1,73 +1,54 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 class AdminAPI {
-  private token: string | null = null;
+  private adminData: any = null;
 
   constructor() {
-    // Try to get token from localStorage on client side
-    if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('admin_token');
-    }
+    
   }
 
   private getHeaders() {
-    const headers: Record<string, string> = {
+    return {
       'Content-Type': 'application/json',
     };
-
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
-    }
-
-    return headers;
   }
 
   async login(email: string, password: string) {
     const response = await fetch(`${API_BASE_URL}/admin/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: this.getHeaders(),
       body: JSON.stringify({ email, password }),
     });
 
     const data = await response.json();
 
-    if (data.success && data.token) {
-      this.token = data.token;
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('admin_token', data.token);
-      }
+    if (data.success && data.user) {
+      this.adminData = data.user;
     }
 
     return data;
   }
 
   async logout() {
-    this.token = null;
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('admin_token');
-    }
+    this.adminData = null;
   }
 
-  async verifyToken() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/admin/verify`, {
-        headers: this.getHeaders(),
-      });
+  isLoggedIn() {
+    return !!this.adminData;
+  }
 
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      return { success: false, message: 'Token verification failed' };
-    }
+  getAdminData() {
+    return this.adminData;
   }
 
   async getTherapists(status?: string) {
+    if (!this.adminData) {
+      throw new Error('Admin not logged in');
+    }
+
     const url = status 
-      ? `${API_BASE_URL}/admin/therapists?status=${status}`
-      : `${API_BASE_URL}/admin/therapists`;
+      ? `${API_BASE_URL}/admin/therapists?status=${status}&adminId=${this.adminData.id}`
+      : `${API_BASE_URL}/admin/therapists?adminId=${this.adminData.id}`;
 
     const response = await fetch(url, {
       headers: this.getHeaders(),
@@ -77,26 +58,39 @@ class AdminAPI {
   }
 
   async approveTherapist(therapistId: string) {
+    if (!this.adminData) {
+      throw new Error('Admin not logged in');
+    }
+
     const response = await fetch(`${API_BASE_URL}/admin/therapists/${therapistId}/approve`, {
       method: 'POST',
       headers: this.getHeaders(),
+      body: JSON.stringify({ adminId: this.adminData.id }),
     });
 
     return await response.json();
   }
 
   async rejectTherapist(therapistId: string, reason?: string) {
+    if (!this.adminData) {
+      throw new Error('Admin not logged in');
+    }
+
     const response = await fetch(`${API_BASE_URL}/admin/therapists/${therapistId}/reject`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify({ reason }),
+      body: JSON.stringify({ reason, adminId: this.adminData.id }),
     });
 
     return await response.json();
   }
 
   async getDashboardStats() {
-    const response = await fetch(`${API_BASE_URL}/admin/dashboard/stats`, {
+    if (!this.adminData) {
+      throw new Error('Admin not logged in');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/admin/dashboard/stats?adminId=${this.adminData.id}`, {
       headers: this.getHeaders(),
     });
 

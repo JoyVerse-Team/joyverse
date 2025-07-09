@@ -33,13 +33,7 @@ const connectDB = async (retries = 5) => {
     console.log('✅ MongoDB connected successfully');
   } catch (error) {
     console.error('❌ MongoDB connection error:', error.message);
-    
-    // Provide helpful error messages
-    if (error.message.includes('IP')) {
-      console.error('🔑 IP Whitelist Issue: Add your current IP (49.204.0.181) to MongoDB Atlas Network Access');
-      console.error('📖 Guide: https://www.mongodb.com/docs/atlas/security-whitelist/');
-    }
-    
+
     if (retries > 0) {
       console.log(`🔄 Retrying connection... (${retries} attempts left)`);
       setTimeout(() => connectDB(retries - 1), 5000);

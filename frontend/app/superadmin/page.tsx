@@ -60,8 +60,8 @@ export default function SuperadminDashboard() {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await adminAPI.verifyToken()
-      if (response.success) {
+      // Simply check if admin data exists in localStorage and adminAPI
+      if (adminAPI.isLoggedIn()) {
         setIsLoggedIn(true)
       }
     } catch (error) {

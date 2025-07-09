@@ -193,10 +193,33 @@ router.post('/login', async (req, res) => {
     console.log('Login Debug Info:');
     console.log('- Role:', role);
     console.log('- User found:', !!user);
+    
     if (role === 'therapist') {
-      // For therapists, compare plain text passwords (as requested)
-      isPasswordValid = password === user.passwordHash;
-      console.log('- Therapist password check result:', isPasswordValid);
+      // Check if therapist is approved
+      if (user.status !== 'approved') {
+        let message = 'Account not approved';
+        if (user.status === 'pending') {
+          message = 'Your account is pending approval by an administrator';
+        } else if (user.status === 'rejected') {
+          message = 'Your account has been rejected. Please contact support for more information';
+        }
+        return res.status(401).json({
+          success: false,
+          message: message
+        });
+      }
+
+      // Check if therapist account is active
+      if (!user.isActive) {
+        return res.status(401).json({
+          success: false,
+          message: 'Your account has been deactivated. Please contact support'
+        });
+      }
+
+      // For therapists, now use bcrypt for hashed passwords
+      isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      console.log('- Therapist bcrypt check result:', isPasswordValid);
     } else {
       // For users (children), continue using bcrypt
       isPasswordValid = await bcrypt.compare(password, user.passwordHash);
@@ -377,7 +400,7 @@ router.get('/profile/:id', async (req, res) => {
   }
 });
 
-// Therapist Signup Route - Store password without encryption/hashing
+// Therapist Signup Route - Creates pending request for admin approval
 router.post('/therapist-signup', async (req, res) => {
   try {
     const { name, email, password, organization, license, experience, bio } = req.body;
@@ -404,19 +427,24 @@ router.post('/therapist-signup', async (req, res) => {
     if (existingTherapist) {
       return res.status(400).json({
         success: false,
-        message: 'Therapist with this email already exists'
+        message: 'A therapist request with this email already exists'
       });
     }
 
-    // Create new therapist with plain text password (as requested)
+    // Hash the password for security
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Create new therapist with 'pending' status (default)
     const newTherapist = new Therapist({
       name: name.trim(),
       email: email.toLowerCase().trim(),
-      passwordHash: password, // Storing plain text password as requested
+      passwordHash, // Storing hashed password
       organization: organization?.trim(),
       license: license?.trim(),
       experience: experience?.trim(),
       bio: bio?.trim()
+      // status defaults to 'pending'
     });
 
     // Save therapist
@@ -436,12 +464,13 @@ router.post('/therapist-signup', async (req, res) => {
     // Return success response (without password)
     res.status(201).json({
       success: true,
-      message: 'Therapist application submitted successfully',
-      user: {
+      message: 'Therapist signup request submitted successfully. Please wait for admin approval.',
+      request: {
         id: newTherapist._id,
         name: newTherapist.name,
         email: newTherapist.email,
-        role: 'therapist'
+        status: newTherapist.status,
+        requestDate: newTherapist.requestDate
       }
     });
 

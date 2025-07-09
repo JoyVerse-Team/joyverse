@@ -1,9 +1,20 @@
 const mongoose = require('mongoose');
 
 const therapistSchema = new mongoose.Schema({
-  name: String,
-  email: { type: String, required: true, unique: true },
-  passwordHash: String, // Will store plain text passwords dont forget to change later
+  name: { 
+    type: String, 
+    required: true 
+  },
+  email: { 
+    type: String, 
+    required: true, 
+    unique: true,
+    lowercase: true 
+  },
+  passwordHash: { 
+    type: String, 
+    required: true 
+  }, // Now stores hashed passwords
   organization: String,
   license: String,
   experience: String,
@@ -21,7 +32,12 @@ const therapistSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Admin'
   },
-  approvedAt: Date
+  approvedAt: Date,
+  rejectionReason: String,
+  isActive: {
+    type: Boolean,
+    default: true
+  }
 }, {
   timestamps: true
 });

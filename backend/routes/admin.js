@@ -1,9 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
 const Therapist = require('../models/Therapist');
-const { verifyToken, verifyAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -11,6 +9,7 @@ const router = express.Router();
 router.post('/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('Admin login attempt:', { email, password });
 
     if (!email || !password) {
       return res.status(400).json({
@@ -19,8 +18,15 @@ router.post('/admin/login', async (req, res) => {
       });
     }
 
-    // Find admin by email
-    const admin = await Admin.findOne({ email: email.toLowerCase() });
+    // Find admin by email or username
+    const admin = await Admin.findOne({ 
+      $or: [
+        { email: email.toLowerCase() },
+        { username: email.toLowerCase() }
+      ]
+    });
+    console.log('Found admin:', admin ? { id: admin._id, username: admin.username, email: admin.email } : null);
+    
     if (!admin) {
       return res.status(401).json({
         success: false,
@@ -28,16 +34,10 @@ router.post('/admin/login', async (req, res) => {
       });
     }
 
-    // Check if admin is active
-    if (!admin.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Account is deactivated'
-      });
-    }
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, admin.passwordHash);
+    // Verify password (plain text comparison for admin as requested)
+    const isPasswordValid = password === admin.password;
+    console.log('Password check:', { provided: password, stored: admin.password, isValid: isPasswordValid });
+    
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
@@ -49,23 +49,12 @@ router.post('/admin/login', async (req, res) => {
     admin.lastLogin = new Date();
     await admin.save();
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        id: admin._id, 
-        email: admin.email, 
-        role: admin.role 
-      },
-      process.env.JWT_SECRET || 'fallback_secret',
-      { expiresIn: '24h' }
-    );
-
     res.json({
       success: true,
       message: 'Login successful',
-      token,
-      admin: {
+      user: {
         id: admin._id,
+        username: admin.username,
         email: admin.email,
         role: admin.role,
         lastLogin: admin.lastLogin
@@ -82,10 +71,27 @@ router.post('/admin/login', async (req, res) => {
 });
 
 // Get all therapists with filtering
-router.get('/admin/therapists', verifyToken, verifyAdmin, async (req, res) => {
+router.get('/admin/therapists', async (req, res) => {
   try {
-    const { status } = req.query;
+    const { adminId, status } = req.query;
     
+    // Simple admin check - in a real app you'd validate this properly
+    if (!adminId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Admin authentication required'
+      });
+    }
+
+    // Verify admin exists
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid admin credentials'
+      });
+    }
+
     let query = {};
     if (status && ['pending', 'approved', 'rejected'].includes(status)) {
       query.status = status;
@@ -122,9 +128,27 @@ router.get('/admin/therapists', verifyToken, verifyAdmin, async (req, res) => {
 });
 
 // Approve therapist
-router.post('/admin/therapists/:id/approve', verifyToken, verifyAdmin, async (req, res) => {
+router.post('/admin/therapists/:id/approve', async (req, res) => {
   try {
     const { id } = req.params;
+    const { adminId } = req.body;
+
+    // Simple admin check
+    if (!adminId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Admin authentication required'
+      });
+    }
+
+    // Verify admin exists
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid admin credentials'
+      });
+    }
 
     const therapist = await Therapist.findById(id);
     if (!therapist) {
@@ -142,7 +166,7 @@ router.post('/admin/therapists/:id/approve', verifyToken, verifyAdmin, async (re
     }
 
     therapist.status = 'approved';
-    therapist.approvedBy = req.admin.id;
+    therapist.approvedBy = adminId;
     therapist.approvedAt = new Date();
     await therapist.save();
 
@@ -168,10 +192,27 @@ router.post('/admin/therapists/:id/approve', verifyToken, verifyAdmin, async (re
 });
 
 // Reject therapist
-router.post('/admin/therapists/:id/reject', verifyToken, verifyAdmin, async (req, res) => {
+router.post('/admin/therapists/:id/reject', async (req, res) => {
   try {
     const { id } = req.params;
-    const { reason } = req.body;
+    const { reason, adminId } = req.body;
+
+    // Simple admin check
+    if (!adminId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Admin authentication required'
+      });
+    }
+
+    // Verify admin exists
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid admin credentials'
+      });
+    }
 
     const therapist = await Therapist.findById(id);
     if (!therapist) {
@@ -189,7 +230,7 @@ router.post('/admin/therapists/:id/reject', verifyToken, verifyAdmin, async (req
     }
 
     therapist.status = 'rejected';
-    therapist.approvedBy = req.admin.id;
+    therapist.approvedBy = adminId;
     therapist.approvedAt = new Date();
     if (reason) {
       therapist.rejectionReason = reason;
@@ -218,8 +259,27 @@ router.post('/admin/therapists/:id/reject', verifyToken, verifyAdmin, async (req
 });
 
 // Get dashboard statistics
-router.get('/admin/dashboard/stats', verifyToken, verifyAdmin, async (req, res) => {
+router.get('/admin/dashboard/stats', async (req, res) => {
   try {
+    const { adminId } = req.query;
+
+    // Simple admin check
+    if (!adminId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Admin authentication required'
+      });
+    }
+
+    // Verify admin exists
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid admin credentials'
+      });
+    }
+
     const totalTherapists = await Therapist.countDocuments();
     const pendingTherapists = await Therapist.countDocuments({ status: 'pending' });
     const approvedTherapists = await Therapist.countDocuments({ status: 'approved' });
@@ -242,19 +302,6 @@ router.get('/admin/dashboard/stats', verifyToken, verifyAdmin, async (req, res) 
       message: 'Server error while fetching dashboard statistics'
     });
   }
-});
-
-// Verify admin token (for frontend to check if user is still logged in)
-router.get('/admin/verify', verifyToken, verifyAdmin, async (req, res) => {
-  res.json({
-    success: true,
-    message: 'Token is valid',
-    admin: {
-      id: req.adminData._id,
-      email: req.adminData.email,
-      role: req.adminData.role
-    }
-  });
 });
 
 module.exports = router;

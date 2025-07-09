@@ -1,23 +1,23 @@
 const mongoose = require('mongoose');
 
 const adminSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true
+  },
   email: { 
     type: String, 
     required: true, 
     unique: true,
     lowercase: true 
   },
-  passwordHash: { 
+  password: { 
     type: String, 
     required: true 
   },
   role: {
     type: String,
     default: 'superadmin'
-  },
-  isActive: {
-    type: Boolean,
-    default: true
   },
   lastLogin: {
     type: Date
