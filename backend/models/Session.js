@@ -1,21 +1,28 @@
+const mongoose = require('mongoose');
+
 const sessionSchema = new mongoose.Schema({
-  userPid: { type: String, required: true },
-  therapistId: { type: mongoose.Schema.Types.ObjectId, ref: 'Therapist' },
-  game: String,
-  startTime: Date,
-  endTime: Date,
-  durationInSeconds: Number,
-  totalWords: Number,
-  rounds: [
+  userId: { 
+    type: mongoose.Schema.Types.Mixed, // Allow both ObjectId and String
+    required: true,
+    validate: {
+      validator: function(v) {
+        // Accept both ObjectId and string formats
+        return mongoose.Types.ObjectId.isValid(v) || typeof v === 'string';
+      },
+      message: 'userId must be a valid ObjectId or string'
+    }
+  },
+  gameName: String,
+  roundsPlayed: Number,
+  durationSeconds: Number,
+  emotionSamples: [
     {
-      roundNumber: Number,
       word: String,
-      difficulty: String,
-      timeTakenSeconds: Number,
-      finalEmotion: String,
-      emotionSampleIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'EmotionSample' }]
+      difficulty: { type: String, enum: ['easy', 'medium', 'hard'] },
+      emotion: String,
+      confidence: Number
     }
   ]
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Session', sessionSchema);

@@ -24,7 +24,18 @@ import {
 const GAME_SPEED = 4 // Balanced speed for smooth movement
 const INPUT_QUEUE_SIZE = 2 // Keep last 2 moves for responsive turning
 
-export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss }: SnakeGameProps) {
+// Add this near the top of the file with other utilities
+const isValidDirectionChange = (currentDirection: Direction, newDirection: Direction): boolean => {
+  // Prevent 180-degree turns
+  return !(
+    (currentDirection === Direction.UP && newDirection === Direction.DOWN) ||
+    (currentDirection === Direction.DOWN && newDirection === Direction.UP) ||
+    (currentDirection === Direction.LEFT && newDirection === Direction.RIGHT) ||
+    (currentDirection === Direction.RIGHT && newDirection === Direction.LEFT)
+  );
+};
+
+export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: SnakeGameProps & { paused?: boolean }) {
   const [gameState, setGameState] = useState<SnakeGameState>({
     snake: [],
     direction: Direction.RIGHT,
@@ -34,11 +45,11 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss }: SnakeGam
     letters: [],
     wordsCompleted: 0,
     lives: 3,
-    gameStatus: GameStatus.READY,
-    difficulty: 'easy' as Difficulty
+    gameStatus: GameStatus.INTRO, // Start with intro screen
+    difficulty: 'level1' as Difficulty
   })
 
-  const TOTAL_WORDS = 10;
+  const TOTAL_WORDS = 5;
   const gameLoopRef = useRef<number | null>(null)
   const lastRenderTimeRef = useRef<number>(0)
   const gameStateRef = useRef<SnakeGameState>(gameState)
@@ -49,24 +60,12 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss }: SnakeGam
     gameStateRef.current = gameState
   }, [gameState])
 
-  // Get a random word based on difficulty
+  // Get a random word based on current difficulty only
   const getRandomWord = useCallback((forceDifficulty?: Difficulty) => {
-    // If difficulty is forced (like starting with 'easy'), use that
-    const difficulty = forceDifficulty || (() => {
-      // After first word, randomly choose any difficulty
-      const difficulties: Difficulty[] = ['easy', 'medium', 'hard'];
-      const randomIndex = Math.floor(Math.random() * difficulties.length);
-      return difficulties[randomIndex];
-    })();
-
+    // Use forced difficulty or current difficulty from state
+    const difficulty = forceDifficulty || gameStateRef.current.difficulty;
     const words = wordLists[difficulty];
     const randomIndex = Math.floor(Math.random() * words.length);
-    
-    // Update the current difficulty
-    setGameState(prev => ({
-      ...prev,
-      difficulty
-    }));
     
     return words[randomIndex];
   }, []);
@@ -131,8 +130,8 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss }: SnakeGam
     const canvas = canvasRef.current
     if (!canvas) return
 
-    // Always start with an easy word
-    const word = getRandomWord('easy')
+    // Always start with level1
+    const word = getRandomWord('level1')
     
     // Create initial snake
     const centerX = Math.floor(canvas.width / CELL_SIZE / 2)
@@ -157,7 +156,7 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss }: SnakeGam
       lives: 3,
       wordsCompleted: 0,
       gameStatus: GameStatus.PLAYING,
-      difficulty: 'easy'
+      difficulty: 'level1'
     }))
   }, [canvasRef, generateLetters, getRandomWord])
 
@@ -423,6 +422,9 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss }: SnakeGam
           if (newCollectedLetters.length === currentState.targetWord.length) {
             const newWordsCompleted = currentState.wordsCompleted + 1
             
+            // Call onWordComplete callback with the completed word
+            onWordComplete?.(currentState.targetWord)
+            
             if (newWordsCompleted >= TOTAL_WORDS) {
               setGameState(prev => ({
                 ...prev,
@@ -436,17 +438,17 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss }: SnakeGam
               return
             }
 
-            // Start next word with random difficulty
+            // Start next word with random difficulty and restore lives
             const nextWord = getRandomWord()
-            const newLetters = generateLetters(nextWord, canvas)
-            
+            const nextWordLetters = generateLetters(nextWord, canvas)
             setGameState(prev => ({
               ...prev,
               snake: newSnake,
               targetWord: nextWord,
               collectedLetters: "",
-              letters: newLetters,
-              wordsCompleted: newWordsCompleted
+              letters: nextWordLetters,
+              wordsCompleted: newWordsCompleted,
+              lives: 3 // Regenerate hearts
             }))
           } else {
             // Update next letter in sequence
@@ -592,8 +594,107 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss }: SnakeGam
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [changeDirection])
 
-  // Start game
+  // Start game function - simplified to just start the game
   const startGame = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const gridWidth = Math.floor(canvas.width / CELL_SIZE);
+    const gridHeight = Math.floor(canvas.height / CELL_SIZE);
+    
+    // Initialize snake in the middle of the canvas
+    const initialSnake: Point[] = [];
+    const startX = Math.floor(gridWidth / 4);
+    const startY = Math.floor(gridHeight / 2);
+    
+    for (let i = 0; i < INITIAL_SNAKE_LENGTH; i++) {
+      initialSnake.push({ x: startX - i, y: startY });
+    }
+
+    // Get initial word
+    const words = wordLists['level1'];
+    const initialWord = words[Math.floor(Math.random() * words.length)];
+
+    setGameState({
+      snake: initialSnake,
+      direction: Direction.RIGHT,
+      nextDirection: Direction.RIGHT,
+      targetWord: initialWord,
+      collectedLetters: "",
+      letters: initialWord.split('').map((letter: string, index: number) => ({
+        letter,
+        position: {
+          x: Math.floor(Math.random() * (gridWidth - 2)) + 1,
+          y: Math.floor(Math.random() * (gridHeight - 2)) + 1
+        },
+        isCorrect: true,
+        isNextInSequence: index === 0,
+        color: index === 0 ? LETTER_COLORS.next : LETTER_COLORS.correct,
+        wordIndex: index
+      })),
+      lives: 3,
+      wordsCompleted: 0,
+      gameStatus: GameStatus.PLAYING,
+      difficulty: 'level1' as Difficulty
+    });
+
+    startGameLoop();
+  }, []);
+
+  // Handle keyboard input
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      const { key } = event;
+      const currentStatus = gameStateRef.current.gameStatus;
+
+      // Handle Enter key for intro screen
+      if (currentStatus === GameStatus.INTRO && key === 'Enter') {
+        event.preventDefault();
+        startGame();
+        return;
+      }
+
+      // Only handle movement keys when playing
+      if (currentStatus !== GameStatus.PLAYING) return;
+
+      switch (key.toLowerCase()) {
+        case 'arrowup':
+        case 'w':
+          setGameState(prev => ({
+            ...prev,
+            nextDirection: Direction.UP
+          }));
+          break;
+        case 'arrowdown':
+        case 's':
+          setGameState(prev => ({
+            ...prev,
+            nextDirection: Direction.DOWN
+          }));
+          break;
+        case 'arrowleft':
+        case 'a':
+          setGameState(prev => ({
+            ...prev,
+            nextDirection: Direction.LEFT
+          }));
+          break;
+        case 'arrowright':
+        case 'd':
+          setGameState(prev => ({
+            ...prev,
+            nextDirection: Direction.RIGHT
+          }));
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, [startGame]);
+
+  // Start game
+  const startGameLoop = useCallback(() => {
     if (gameLoopRef.current) {
       cancelAnimationFrame(gameLoopRef.current)
     }
@@ -633,6 +734,21 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss }: SnakeGam
     }
   }, [gameLoop])
 
+  // Pause/resume game loop based on paused prop
+  useEffect(() => {
+    if (paused) {
+      if (gameLoopRef.current) {
+        cancelAnimationFrame(gameLoopRef.current);
+        gameLoopRef.current = null;
+      }
+    } else if (gameStateRef.current.gameStatus === GameStatus.PLAYING) {
+      if (!gameLoopRef.current) {
+        lastRenderTimeRef.current = performance.now();
+        gameLoopRef.current = requestAnimationFrame(gameLoop);
+      }
+    }
+  }, [paused, gameStateRef.current.gameStatus]);
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -641,6 +757,52 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss }: SnakeGam
       }
     }
   }, [])
+
+  // Adjust difficulty based on emotion - this is the ONLY way difficulty changes
+  const adjustDifficultyByEmotion = useCallback((emotion: string) => {
+    const currentDifficulty = gameStateRef.current.difficulty;
+    let newDifficulty: Difficulty;
+
+    // Emotion-based difficulty rules:
+    // happy = increase by 1 level
+    // neutral = stay at current level  
+    // anything else = decrease by 1 level
+    
+    const normalizedEmotion = emotion.toLowerCase();
+    
+    if (normalizedEmotion === 'happy' || normalizedEmotion === 'joy') {
+      // Increase difficulty by 1 level
+      switch (currentDifficulty) {
+        case 'level1': newDifficulty = 'level2'; break;
+        case 'level2': newDifficulty = 'level3'; break;
+        case 'level3': newDifficulty = 'level4'; break;
+        case 'level4': newDifficulty = 'level4'; break; // Stay at max
+        default: newDifficulty = 'level1';
+      }
+    } else if (normalizedEmotion === 'neutral') {
+      // Stay at current level
+      newDifficulty = currentDifficulty;
+    } else {
+      // Decrease difficulty by 1 level (for sad, angry, fear, frustrated, etc.)
+      switch (currentDifficulty) {
+        case 'level1': newDifficulty = 'level1'; break; // Stay at min
+        case 'level2': newDifficulty = 'level1'; break;
+        case 'level3': newDifficulty = 'level2'; break;
+        case 'level4': newDifficulty = 'level3'; break;
+        default: newDifficulty = 'level1';
+      }
+    }
+
+    console.log(`Emotion: ${emotion} | Current: ${currentDifficulty} | New: ${newDifficulty}`);
+
+    // Update difficulty in state
+    setGameState(prev => ({
+      ...prev,
+      difficulty: newDifficulty
+    }));
+
+    return newDifficulty;
+  }, []);
 
   // Adjust difficulty (placeholder for future AI integration)
   const adjustDifficulty = useCallback(
@@ -662,5 +824,61 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss }: SnakeGam
     pauseGame,
     resumeGame,
     adjustDifficulty,
+    adjustDifficultyByEmotion,
   }
 }
+
+// Helper function to create distractor letters
+const createDistractorLetters = (word: string, gridWidth: number, gridHeight: number, snake: Point[]): LetterItem[] => {
+  const letters: LetterItem[] = [];
+  const wordLetters = word.split('');
+  
+  // Create letter items for each letter in the word
+  for (let i = 0; i < wordLetters.length; i++) {
+    // Generate random position that doesn't overlap with snake
+    let position: Point;
+    do {
+      position = {
+        x: Math.floor(Math.random() * (gridWidth - 2)) + 1,
+        y: Math.floor(Math.random() * (gridHeight - 2)) + 1
+      };
+    } while (snake.some(segment => segment.x === position.x && segment.y === position.y));
+
+    letters.push({
+      letter: wordLetters[i],
+      position,
+      isCorrect: true,
+      isNextInSequence: i === 0,
+      color: i === 0 ? LETTER_COLORS.next : LETTER_COLORS.correct,
+      wordIndex: i
+    });
+  }
+
+  // Add some distractor letters
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const numDistractors = Math.min(5, gridWidth * gridHeight - wordLetters.length - snake.length);
+  
+  for (let i = 0; i < numDistractors; i++) {
+    let position: Point;
+    do {
+      position = {
+        x: Math.floor(Math.random() * (gridWidth - 2)) + 1,
+        y: Math.floor(Math.random() * (gridHeight - 2)) + 1
+      };
+    } while (
+      snake.some(segment => segment.x === position.x && segment.y === position.y) ||
+      letters.some(item => item.position.x === position.x && item.position.y === position.y)
+    );
+
+    const randomLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+    letters.push({
+      letter: randomLetter,
+      position,
+      isCorrect: false,
+      isNextInSequence: false,
+      color: LETTER_COLORS.distractor
+    });
+  }
+
+  return letters;
+};

@@ -7,6 +7,10 @@
 6.Shashank
 # Joyverse - Testing Instructions
 ## Quick Start (Automatic - Both Servers)
+# Joyverse - Testing Instructions
+
+## Quick Start (Automatic - Both Servers)
+
 ### Option 1: Using NPM (Recommended)
 ```bash
 cd frontend

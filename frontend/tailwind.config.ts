@@ -60,8 +60,25 @@ const config: Config = {
   				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
-  			}
+  			},
+  			'cream-100': '#F5F5DC',
+  			'brown-600': '#654321',
+  			'brown-700': '#8B4513',
+        brown: {
+          800: '#5D4037',
+          900: '#3E2723',
+        },
+        parchment: '#FFF8DC',
   		},
+      backdropBlur: {
+        xs: '2px',
+        sm: '4px',
+        md: '12px',
+        lg: '16px',
+        xl: '24px',
+        '2xl': '40px',
+        '3xl': '64px',
+      },
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
@@ -83,12 +100,30 @@ const config: Config = {
   				to: {
   					height: '0'
   				}
-  			}
+  			},
+        wave: {
+          '0%, 100%': { transform: 'rotate(-5deg)' },
+          '50%': { transform: 'rotate(5deg)' },
+        },
+        shake: {
+          '0%, 100%': { transform: 'translate(0, 0) rotate(0)' },
+          '25%': { transform: 'translate(-5px, 5px) rotate(-5deg)' },
+          '75%': { transform: 'translate(5px, -5px) rotate(5deg)' },
+        }
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
-  		}
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+        'bounce-slow': 'bounce 2s infinite',
+        'wave': 'wave 2s infinite',
+        'shake': 'shake 0.5s infinite',
+        'pulse': 'pulse 1.5s infinite',
+  		},
+  		fontFamily: {
+  			medieval: ['MedievalSharp', 'cursive'],
+        'medieval-text': ['Fondamento', 'cursive'],
+        'retro': ['Press Start 2P', 'cursive'],
+  		},
   	}
   },
   plugins: [require("tailwindcss-animate")],

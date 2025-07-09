@@ -9,6 +9,8 @@ export enum Direction {
 }
 
 export enum GameStatus {
+  INTRO = "INTRO",
+  TUTORIAL = "TUTORIAL",
   READY = "READY",
   PLAYING = "PLAYING",
   PAUSED = "PAUSED",
@@ -46,6 +48,6 @@ export interface SnakeGameState {
 export interface SnakeGameProps {
   canvasRef: RefObject<HTMLCanvasElement | null>
   initialWord?: string
-  onWordComplete?: () => string
+  onWordComplete?: (word: string) => void
   onLifeLoss?: () => void
 }

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Body -->
+  <path d="M50,100 C50,60 150,60 150,100 S150,140 50,140 S50,140 50,100" fill="#98C9A3" stroke="none"/>
+  <!-- Belly -->
+  <path d="M60,100 C60,70 140,70 140,100 S140,130 60,130 S60,130 60,100" fill="#E8F3D6" stroke="none"/>
+  <!-- Head -->
+  <circle cx="150" cy="100" r="20" fill="#98C9A3"/>
+  <!-- Eyes -->
+  <circle cx="155" cy="95" r="4" fill="#2C3333"/>
+  <circle cx="155" cy="105" r="4" fill="#2C3333"/>
+  <!-- Blush -->
+  <circle cx="165" cy="100" r="5" fill="#FFB4B4" opacity="0.5"/>
+  <!-- Tongue -->
+  <path d="M170,100 Q175,100 177,97 T180,100 T177,103 T170,100" fill="#FF7D7D"/>
+</svg>

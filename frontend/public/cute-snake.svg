@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+  <style>
+    .snake-body { fill: #90C94D; }
+    .snake-belly { fill: #D4E7A5; }
+    .snake-eye { fill: #333; }
+  </style>
+  <path class="snake-body" d="M150,200 Q300,100 450,200 T750,200"/>
+  <path class="snake-belly" d="M150,210 Q300,110 450,210 T750,210 T450,190 T150,190 Z"/>
+  <circle class="snake-eye" cx="165" cy="185" r="8"/>
+  <path class="snake-body" d="M140,200 Q130,190 140,180 Q150,170 160,180 Q170,190 160,200 Z"/>
+</svg>

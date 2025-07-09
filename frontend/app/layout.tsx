@@ -1,17 +1,22 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Lexend } from "next/font/google"
 import "./globals.css"
+import "./fonts.css"
 import { AuthProvider } from "@/components/auth-provider"
 
 const inter = Inter({ subsets: ["latin"] })
+const lexend = Lexend({ 
+  subsets: ["latin"],
+  variable: '--font-lexend'
+})
 
 export const metadata: Metadata = {
-  title: "LearnPlay - Fun Learning Games for Kids",
+  title: "JoyVerse - Making Learning Joyful for Every Mind",
   description:
-    "Educational games designed for children with learning difficulties. Learn spelling, math, and more through interactive play!",
-  keywords: "educational games, kids learning, spelling games, learning difficulties, interactive learning",
-    generator: 'v0.dev'
+    "An emotion-aware educational platform designed specifically for dyslexic children. Learn through games with AI-powered adaptation and emotional support.",
+  keywords: "dyslexia, educational games, kids learning, emotion-aware AI, special needs education, learning difficulties",
+  generator: 'JoyVerse'
 }
 
 export default function RootLayout({
@@ -21,7 +26,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${lexend.variable} font-sans`}>
         <AuthProvider>
           {children}
         </AuthProvider>

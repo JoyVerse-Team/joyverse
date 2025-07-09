@@ -55,14 +55,5 @@
 
 /* Game Background */
 .game-background {
-  background-color: #F5F5F5; /* Light gray game background */
+  background-color: #67a2b4; /* Light gray game background */
 }
-
-/*
- * To change colors:
- * 1. Click on any hex color above
- * 2. Use VS Code's color picker to select a new color
- * 3. Copy the hex value
- * 4. Update the corresponding color in constants.ts
- * 5. The game will automatically use your new colors!
- */
