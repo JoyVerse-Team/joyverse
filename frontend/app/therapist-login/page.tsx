@@ -70,11 +70,6 @@ export default function TherapistLoginPage() {
         // Update auth state with logged in user
         login(result.user);
         
-        // Store therapist data separately for the dashboard
-        if (result.user.role === 'therapist') {
-          localStorage.setItem('therapist', JSON.stringify(result.user));
-        }
-        
         setMessage('Access granted. Welcome to your dashboard!');
         
         setTimeout(() => {

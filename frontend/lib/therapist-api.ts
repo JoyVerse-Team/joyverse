@@ -266,54 +266,28 @@ export const therapistApiService = new TherapistApiService();
 
 // Legacy export for compatibility with existing mock data service
 export const localDataService = {
-  getDashboardData: async (therapistId?: string): Promise<DashboardData> => {
-    let tId = therapistId;
-    
-    // Get therapist from localStorage if not provided
-    if (!tId) {
-      const storedTherapist = localStorage.getItem("therapist");
-      if (!storedTherapist) {
-        throw new Error('No therapist found in localStorage');
-      }
-      const therapist = JSON.parse(storedTherapist);
-      tId = therapist.id;
-    }
-    
-    if (!tId) {
+  getDashboardData: async (therapistId: string): Promise<DashboardData> => {
+    if (!therapistId) {
       throw new Error('Therapist ID is required');
     }
     
-    return therapistApiService.getDashboardData(tId);
+    return therapistApiService.getDashboardData(therapistId);
   },
   
-  getStudentSessions: async (studentId: string, therapistId?: string): Promise<GameSession[]> => {
-    let tId = therapistId;
-    
-    // Get therapist from localStorage if not provided
-    if (!tId) {
-      const storedTherapist = localStorage.getItem("therapist");
-      if (storedTherapist) {
-        const therapist = JSON.parse(storedTherapist);
-        tId = therapist.id;
-      }
+  getStudentSessions: async (studentId: string, therapistId: string): Promise<GameSession[]> => {
+    if (!therapistId) {
+      throw new Error('Therapist ID is required');
     }
-    
-    return therapistApiService.getStudentSessions(studentId, tId);
+
+    return therapistApiService.getStudentSessions(studentId, therapistId);
   },
 
-  getSessionEmotions: async (sessionId: string, therapistId?: string): Promise<SessionEmotionData> => {
-    let tId = therapistId;
-    
-    // Get therapist from localStorage if not provided
-    if (!tId) {
-      const storedTherapist = localStorage.getItem("therapist");
-      if (storedTherapist) {
-        const therapist = JSON.parse(storedTherapist);
-        tId = therapist.id;
-      }
+  getSessionEmotions: async (sessionId: string, therapistId: string): Promise<SessionEmotionData> => {
+    if (!therapistId) {
+      throw new Error('Therapist ID is required');
     }
-    
-    return therapistApiService.getSessionEmotions(sessionId, tId);
+
+    return therapistApiService.getSessionEmotions(sessionId, therapistId);
   }
 };
 

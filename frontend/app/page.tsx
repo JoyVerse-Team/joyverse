@@ -43,10 +43,8 @@ export default function HomePage() {
   const handleGamesClick = () => navigateWithLoadingState('games', '/games')
   
   const handleDashboardClick = () => {
-    // Check if user is a therapist (either through auth provider or localStorage)
-    const storedTherapist = localStorage.getItem("therapist")
-    
-    if (user?.role === 'therapist' || storedTherapist) {
+    // Check user role from auth provider only
+    if (user?.role === 'therapist') {
       // Redirect to therapist dashboard
       navigateWithLoadingState('therapist-dashboard', '/therapist_dashboard')
     } else {

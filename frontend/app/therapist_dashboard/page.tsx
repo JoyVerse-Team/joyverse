@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LogOut, Eye, User, Clock, BookOpen, Calendar, X, Target } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/components/auth-provider"
 import { localDataService, type Therapist, type Student, type GameSession, type WeeklyData } from "@/lib/therapist-api"
 
 
@@ -37,6 +38,7 @@ const getDifficultyColor = (difficulty: string) => {
 }
 
 export default function Dashboard() {
+  const { user, isAuthenticated, logout } = useAuth()
   const [therapist, setTherapist] = useState<Therapist | null>(null)
   const [students, setStudents] = useState<Student[]>([])
   const [recentSessions, setRecentSessions] = useState<any[]>([])
@@ -55,26 +57,24 @@ export default function Dashboard() {
   const { toast } = useToast()
 
   useEffect(() => {
-    const storedTherapist = localStorage.getItem("therapist")
-    if (storedTherapist) {
-      setTherapist(JSON.parse(storedTherapist))
-      loadDashboardData()
-    } else {
+    if (!isAuthenticated || !user || user.role !== 'therapist') {
       router.push("/")
+      return
     }
-  }, [router])
+    
+    setTherapist(user as Therapist)
+    loadDashboardData()
+  }, [isAuthenticated, user, router])
 
   const loadDashboardData = async () => {
     setIsLoading(true)
 
     try {
-      const storedTherapist = localStorage.getItem("therapist")
-      if (!storedTherapist) {
+      if (!user) {
         throw new Error('No therapist found')
       }
 
-      const therapist = JSON.parse(storedTherapist)
-      const dashboardData = await localDataService.getDashboardData(therapist.id)
+      const dashboardData = await localDataService.getDashboardData(user.id)
       
       setStudents(dashboardData.students)
       setRecentSessions(dashboardData.recentSessions)
@@ -91,22 +91,32 @@ export default function Dashboard() {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem("therapist")
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    })
-    router.push("/")
+  const handleLogout = async () => {
+    try {
+      await logout()
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      })
+      router.push("/")
+    } catch (error) {
+      console.error('Logout error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to logout properly.",
+        variant: "destructive"
+      })
+      router.push("/")
+    }
   }
  
   const handleViewStudent = async (studentId: string) => {
     // Find the student data
     const student = students.find((s) => s.id === studentId)
-    if (student) {
+    if (student && user?.id) {
       setSelectedStudent(student)
       try {
-        const sessions = await localDataService.getStudentSessions(studentId)
+        const sessions = await localDataService.getStudentSessions(studentId, user.id)
         setSelectedStudentSessions(sessions)
         setShowStudentDetail(true)
       } catch (error) {
@@ -121,9 +131,11 @@ export default function Dashboard() {
   }
 
   const handleViewSessionEmotions = async (session: any) => {
+    if (!user?.id) return;
+    
     setIsLoadingEmotions(true)
     try {
-      const emotions = await localDataService.getSessionEmotions(session.id)
+      const emotions = await localDataService.getSessionEmotions(session.id, user.id)
       setSelectedSession(session)
       setSessionEmotions(emotions)
       setShowSessionDetail(true)

@@ -16,32 +16,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    // Check for any stored user in localStorage (for demo/persistence)
-    const storedUser = localStorage.getItem('joyverse-user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        console.log('AuthProvider - Found stored user:', parsedUser);
-        setUser(parsedUser);
-        setLoading(false);
-        return;
-      } catch (error) {
-        console.error('AuthProvider - Error parsing stored user:', error);
-        localStorage.removeItem('joyverse-user');
-      }
-    }
-
-    // No stored user found
-    console.log('AuthProvider - No stored user found');
-    setLoading(false);
-  }, []);
 
   const login = (userData: User) => {
     console.log('AuthProvider - login called with:', userData);
     setUser(userData);
-    // Store user in localStorage for persistence
-    localStorage.setItem('joyverse-user', JSON.stringify(userData));
     console.log('AuthProvider - user state updated, isAuthenticated should be:', !!userData);
   };
 
@@ -59,11 +37,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await logoutAuth();
       setUser(null);
-      localStorage.removeItem('joyverse-user');    } catch (error) {
+    } catch (error) {
       console.error('Logout error:', error);
-      // Even if backend logout fails, clear local state
       setUser(null);
-      localStorage.removeItem('joyverse-user');
     }
   };
   const value: AuthContextType = {
