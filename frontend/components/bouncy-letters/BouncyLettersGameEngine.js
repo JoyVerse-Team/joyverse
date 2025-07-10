@@ -61,9 +61,9 @@ class BouncyLettersScene extends Phaser.Scene {
     const gameHeight = this.cameras.main.height;
     
     // Calculate responsive font sizes - making letters bigger
-    const baseFontSize = Math.min(gameWidth, gameHeight) * 0.035;
-    const buttonFontSize = Math.min(gameWidth, gameHeight) * 0.04;
-    const letterFontSize = Math.min(gameWidth, gameHeight) * 0.08; // Much bigger letters!
+    const baseFontSize = Math.min(gameWidth, gameHeight) * 0.045; // Increased from 0.035
+    const buttonFontSize = Math.min(gameWidth, gameHeight) * 0.05; // Increased from 0.04
+    const letterFontSize = Math.min(gameWidth, gameHeight) * 0.12; // Increased from 0.08 - Much bigger letters!
     
     // Store dimensions for other methods
     this.gameWidth = gameWidth;
@@ -201,9 +201,9 @@ class BouncyLettersScene extends Phaser.Scene {
     // Responsive dialog sizing
     const dialogWidth = Math.min(this.gameWidth * 0.85, 500);
     const dialogHeight = Math.min(this.gameHeight * 0.6, 300);
-    const titleFontSize = Math.min(this.gameWidth, this.gameHeight) * 0.04;
-    const messageFontSize = Math.min(this.gameWidth, this.gameHeight) * 0.035;
-    const buttonFontSize = Math.min(this.gameWidth, this.gameHeight) * 0.025;
+    const titleFontSize = Math.min(this.gameWidth, this.gameHeight) * 0.055; // Increased from 0.04
+    const messageFontSize = Math.min(this.gameWidth, this.gameHeight) * 0.045; // Increased from 0.035
+    const buttonFontSize = Math.min(this.gameWidth, this.gameHeight) * 0.035; // Increased from 0.025
 
     // Create retro-style background with gradient effect
     const bgRect = this.add.rectangle(centerX, centerY, dialogWidth, dialogHeight, 0x2E86C1, 0.95);
@@ -415,7 +415,7 @@ class BouncyLettersScene extends Phaser.Scene {
     }
     
     const messageText = this.add.text(centerX, centerY - 30, message, {
-      fontSize: `${this.baseFontSize * 1.1}px`,
+      fontSize: `${this.baseFontSize * 1.3}px`, // Increased from 1.1
       color: "#FFD700",
       fontStyle: "bold",
       fontFamily: "Courier New, monospace", // Retro font
@@ -430,7 +430,7 @@ class BouncyLettersScene extends Phaser.Scene {
     
     // Add "Press ENTER" instruction with retro styling
     const enterText = this.add.text(centerX, centerY + 50, "Press ENTER to continue ⚡", {
-      fontSize: `${this.baseFontSize * 0.9}px`,
+      fontSize: `${this.baseFontSize * 1.1}px`, // Increased from 0.9
       color: "#FFFFFF",
       fontStyle: "bold",
       fontFamily: "Courier New, monospace",
