@@ -7,9 +7,9 @@ import { gameApiService } from '@/lib/game-api';
 
 // Emotion to background mapping
 const emotionBackgrounds: Record<string, string> = {
-  'happy': '/bouncy_public/assets/backgrounds/bg_happy.png',
+  'happy': '/bouncy_public/assets/backgrounds/bg_sad.png',
   'neutral': '/bouncy_public/assets/backgrounds/bg_neutal.png', // Note: keeping original typo
-  'sad': '/bouncy_public/assets/backgrounds/bg_sad.png',
+  'sad': '/bouncy_public/assets/backgrounds/bg_happy.png',
   'surprise': '/bouncy_public/assets/backgrounds/bg_surprise.png',
   'angry': '/bouncy_public/assets/backgrounds/bg_neutal.png', // fallback to neutral
   'fear': '/bouncy_public/assets/backgrounds/bg_sad.png', // fallback to sad
