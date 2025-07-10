@@ -231,8 +231,8 @@ export default function DashboardPage() {
                   <div className="w-16 h-16 bg-gradient-to-r from-purple-500/80 to-pink-500/80 rounded-2xl mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <BookOpen className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">Word Puzzles</h3>
-                  <p className="text-white/70 text-sm mb-4">Improve vocabulary and spelling skills</p>
+                  <h3 className="text-xl font-bold text-white mb-2">Bouncy Letters</h3>
+                  <p className="text-white/70 text-sm mb-4">Bouncing past letter confusion</p>
                   <Badge className="bg-yellow-500/80 text-white">Medium</Badge>
                 </div>
                 
@@ -240,8 +240,8 @@ export default function DashboardPage() {
                   <div className="w-16 h-16 bg-gradient-to-r from-orange-500/80 to-red-500/80 rounded-2xl mb-4 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <Target className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">Reading Quest</h3>
-                  <p className="text-white/70 text-sm mb-4">Adventure-based reading comprehension</p>
+                  <h3 className="text-xl font-bold text-white mb-2">Word Puzzles</h3>
+                  <p className="text-white/70 text-sm mb-4">Improve vocabulary and spelling skills</p>
                   <Badge className="bg-red-500/80 text-white">Hard</Badge>
                 </div>
               </div>
