@@ -50,6 +50,7 @@ export default function SnakeGamePage() {
   }>({ show: false, message: '', type: 'info' })
   const emotionIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const initialTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const periodicSaveRef = useRef<NodeJS.Timeout | null>(null)
   const currentWordRef = useRef<string>("")
   const currentDifficultyRef = useRef<string>("easy")
 
@@ -65,7 +66,7 @@ export default function SnakeGamePage() {
 
   // Function to start emotion detection
   const startEmotionDetection = () => {
-    console.log('Starting emotion detection...')
+    console.log('🚀 Starting emotion detection...')
     
     // Clear any existing intervals
     if (emotionIntervalRef.current) {
@@ -84,11 +85,14 @@ export default function SnakeGamePage() {
     emotionIntervalRef.current = setInterval(() => {
       captureEmotionForUpdate()
     }, 10000)
+    
+    // Start periodic save every 30 seconds
+    startPeriodicSave()
   }
 
   // Function to stop emotion detection
   const stopEmotionDetection = () => {
-    console.log('Stopping emotion detection...')
+    console.log('🛑 Stopping emotion detection...')
     
     if (emotionIntervalRef.current) {
       clearInterval(emotionIntervalRef.current)
@@ -97,6 +101,34 @@ export default function SnakeGamePage() {
     if (initialTimeoutRef.current) {
       clearTimeout(initialTimeoutRef.current)
       initialTimeoutRef.current = null
+    }
+    
+    // Stop periodic save
+    stopPeriodicSave()
+  }
+
+  // Function to start periodic save
+  const startPeriodicSave = () => {
+    console.log('🕒 Starting periodic save (every 30 seconds)...')
+    
+    // Clear existing interval
+    if (periodicSaveRef.current) {
+      clearInterval(periodicSaveRef.current)
+    }
+    
+    // Set up 30-second interval for periodic saves
+    periodicSaveRef.current = setInterval(async () => {
+      console.log('⏰ Periodic save triggered - saving pending data')
+      await savePendingEmotionData()
+    }, 30000)
+  }
+
+  // Function to stop periodic save
+  const stopPeriodicSave = () => {
+    if (periodicSaveRef.current) {
+      clearInterval(periodicSaveRef.current)
+      periodicSaveRef.current = null
+      console.log('🛑 Stopped periodic save')
     }
   }
   // Handle game status changes
@@ -111,6 +143,9 @@ export default function SnakeGamePage() {
       }
       startEmotionDetection()
     } else if (status === GameStatus.GAME_OVER) {
+      // Save any pending emotion data before ending the session
+      await savePendingEmotionData()
+      
       // End session when game is over
       stopEmotionDetection()
       if (session && session.isActive) {
@@ -127,6 +162,12 @@ export default function SnakeGamePage() {
     if (emotion in emotionGradients && emotion !== 'surprised') {
       setBackgroundEmotion(emotion)
     }
+  }
+  
+  // Handle current word changes (to track what word we're on)
+  const handleCurrentWordChange = (word: string) => {
+    currentWordRef.current = word
+    console.log(`📝 Current word updated: "${word}"`)
   }
   
   // Function to capture emotion for background update only (not stored until word completion)
@@ -206,8 +247,21 @@ export default function SnakeGamePage() {
     // Set default background on mount
     setBackgroundEmotion("neutral")
     
+    // Add beforeunload event listener to save data when closing browser
+    const handleBeforeUnload = async (event: BeforeUnloadEvent) => {
+      // Save any pending emotion data before the page unloads
+      await savePendingEmotionData()
+      
+      // Standard beforeunload behavior
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    
     return () => {
       stopEmotionDetection()
+      window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [])
   // Handle game start
@@ -315,12 +369,55 @@ export default function SnakeGamePage() {
     }
   }
 
+  // Function to save any pending emotion data before save/exit
+  const savePendingEmotionData = async () => {
+    if (session && session.isActive && currentEmotion && currentWordRef.current) {
+      console.log('💾 Saving pending emotion data before save/exit:', {
+        word: currentWordRef.current,
+        emotion: currentEmotion.emotion,
+        confidence: currentEmotion.confidence,
+        difficulty: getDifficultyName(currentDifficulty)
+      })
+      
+      const success = await addEmotionData(
+        currentWordRef.current, 
+        currentEmotion, 
+        getDifficultyName(currentDifficulty)
+      )
+      
+      if (success) {
+        console.log('✅ Pending emotion data saved successfully')
+        // Clear the current emotion after storing
+        setCurrentEmotion(null)
+        
+        // Trigger auto-save to ensure the data is persisted
+        await autoSave()
+        console.log('💾 Triggered auto-save after saving pending emotion data')
+        
+        return true
+      } else {
+        console.error('❌ Failed to save pending emotion data')
+        return false
+      }
+    } else if (currentEmotion && !currentWordRef.current) {
+      console.warn('⚠️ Current emotion exists but no current word to associate it with')
+      return false
+    } else {
+      console.log('ℹ️ No pending emotion data to save')
+      return true
+    }
+  }
+
   // Handle manual save
   const handleManualSave = async () => {
+    // First save any pending emotion data
+    await savePendingEmotionData()
+    
+    // Then do the regular auto-save
     await autoSave()
     setLastSaveTime(new Date())
     setSaveNotification({ show: true, message: 'Game progress saved!', type: 'success' })
-    console.log('💾 Manual save completed')
+    console.log('💾 Manual save completed with pending data')
   }
 
   // Show notification when session is created
@@ -365,7 +462,7 @@ export default function SnakeGamePage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 relative z-10">          {/* Back Button */}        
+      <div className="container mx-auto px-4 py-8 relative z-10">     
         <div className="mb-6 flex justify-between items-center">
           <Button
             onClick={() => router.push("/")}
@@ -419,6 +516,7 @@ export default function SnakeGamePage() {
                   onGameStatusChange={handleGameStatusChange} 
                   onEmotionUpdate={handleEmotionUpdate}
                   onWordComplete={handleWordComplete}
+                  onCurrentWordChange={handleCurrentWordChange}
                 />
               </div>
             </div>

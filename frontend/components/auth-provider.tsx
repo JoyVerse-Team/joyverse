@@ -17,6 +17,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    // Initialize auth state - set loading to false after component mounts
+    setLoading(false);
+  }, []);
+
   const login = (userData: User) => {
     console.log('AuthProvider - login called with:', userData);
     setUser(userData);

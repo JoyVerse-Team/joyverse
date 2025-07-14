@@ -12,6 +12,7 @@ interface SnakeGameComponentProps {
   onGameStatusChange?: (status: GameStatus) => void
   onEmotionUpdate?: (emotion: string) => void
   onWordComplete?: (word: string) => void
+  onCurrentWordChange?: (word: string) => void
 }
 
 // Simple dialog component for popups
@@ -65,7 +66,7 @@ const RetroDialog = ({ children, show, vibrant = false }: { children: React.Reac
   );
 };
 
-export function SnakeGame({ onGameStatusChange, onEmotionUpdate, onWordComplete }: SnakeGameComponentProps) {
+export function SnakeGame({ onGameStatusChange, onEmotionUpdate, onWordComplete, onCurrentWordChange }: SnakeGameComponentProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showLifeLossPopup, setShowLifeLossPopup] = useState(false);
@@ -75,7 +76,9 @@ export function SnakeGame({ onGameStatusChange, onEmotionUpdate, onWordComplete 
   const [currentEmotion, setCurrentEmotion] = useState<string>('');
   const [currentDifficulty, setCurrentDifficulty] = useState<Difficulty>("level1");
   const [isCapturingEmotion, setIsCapturingEmotion] = useState(false);
+  const [difficultyAdjustedForWord, setDifficultyAdjustedForWord] = useState(false);
   const lifeLossRef = useRef(false);
+  const emotionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // For now, use a placeholder user ID. In a real app, this would come from authentication
   const userId = "user123";
@@ -107,19 +110,24 @@ export function SnakeGame({ onGameStatusChange, onEmotionUpdate, onWordComplete 
     
     setIsCapturingEmotion(true)
     try {
-      console.log('Starting emotion capture...')
+      console.log('🎭 Starting emotion capture for round...')
       const emotion = await gameApiService.captureAndDetectEmotion()
       setCurrentEmotion(emotion.emotion)
-      console.log(`Captured emotion: ${emotion.emotion} with confidence ${emotion.confidence}`)
+      console.log(`🎭 Captured emotion: ${emotion.emotion} with confidence ${emotion.confidence}`)
       
-      // Adjust difficulty based on emotion - THIS IS THE ONLY WAY DIFFICULTY CHANGES
-      const newDifficulty = adjustDifficultyByEmotion(emotion.emotion)
-      console.log(`Difficulty adjusted from emotion ${emotion.emotion} to level: ${newDifficulty}`)
+      // Only adjust difficulty if it hasn't been adjusted for this word yet
+      if (!difficultyAdjustedForWord) {
+        const newDifficulty = adjustDifficultyByEmotion(emotion.emotion)
+        console.log(`⚙️ Difficulty adjusted from emotion ${emotion.emotion} to level: ${newDifficulty}`)
+        setDifficultyAdjustedForWord(true)
+      } else {
+        console.log('🚫 Difficulty already adjusted for this word, skipping adjustment')
+      }
       
-      // Notify parent component about the emotion update
+      // Always notify parent component about the emotion update for background changes
       onEmotionUpdate?.(emotion.emotion)
     } catch (error) {
-      console.error('Failed to capture emotion:', error)
+      console.error('❌ Failed to capture emotion:', error)
     } finally {
       setIsCapturingEmotion(false)
     }
@@ -132,19 +140,53 @@ export function SnakeGame({ onGameStatusChange, onEmotionUpdate, onWordComplete 
     }
   }, [difficulty])
 
+  // Reset difficulty adjustment flag when target word changes (new word starts)
+  useEffect(() => {
+    console.log(`🔄 New word started: "${targetWord}" - resetting difficulty adjustment flag`)
+    setDifficultyAdjustedForWord(false)
+    
+    // Notify parent about current word change
+    if (targetWord) {
+      onCurrentWordChange?.(targetWord)
+    }
+    
+    // Clear any existing emotion detection interval
+    if (emotionIntervalRef.current) {
+      clearInterval(emotionIntervalRef.current)
+      emotionIntervalRef.current = null
+      console.log('🛑 Cleared emotion detection interval for new word')
+    }
+  }, [targetWord])
+
   // Notify parent when game status changes
   useEffect(() => {
     onGameStatusChange?.(gameStatus)
   }, [gameStatus, onGameStatusChange])
 
-  // Trigger emotion capture when only one letter is left to collect
+  // Start emotion detection interval when only one letter is left to collect
   useEffect(() => {
     const lettersLeft = targetWord.length - collectedLetters.length
-    if (lettersLeft === 1 && gameStatus === GameStatus.PLAYING && !isCapturingEmotion) {
-      console.log('Only one letter left - triggering emotion capture for difficulty adjustment')
+    console.log(`📊 Letters check: ${lettersLeft} letters left, game status: ${gameStatus}, interval active: ${emotionIntervalRef.current !== null}`)
+    
+    if (lettersLeft === 1 && gameStatus === GameStatus.PLAYING && !emotionIntervalRef.current) {
+      console.log('🎯 One letter left - starting 4-second emotion detection interval')
+      
+      // Start immediate emotion capture
       captureEmotionForRound()
+      
+      // Set up 4-second interval for continued emotion detection
+      emotionIntervalRef.current = setInterval(() => {
+        console.log('⏰ 4-second interval triggered - capturing emotion')
+        captureEmotionForRound()
+      }, 4000)
+      
+    } else if (lettersLeft !== 1 && emotionIntervalRef.current) {
+      // Stop interval if we're no longer at one letter left
+      console.log('🛑 No longer at one letter left - stopping emotion detection interval')
+      clearInterval(emotionIntervalRef.current)
+      emotionIntervalRef.current = null
     }
-  }, [collectedLetters.length, targetWord.length, gameStatus, isCapturingEmotion])
+  }, [collectedLetters.length, targetWord.length, gameStatus])
 
   // Listen for Enter on intro to show tutorial
   useEffect(() => {
@@ -216,6 +258,24 @@ export function SnakeGame({ onGameStatusChange, onEmotionUpdate, onWordComplete 
       return () => window.removeEventListener("keydown", handleSpacebar)
     }
   }, [gameStatus, pauseGame, resumeGame])
+
+  // Cleanup emotion detection interval on unmount or game status change
+  useEffect(() => {
+    if (gameStatus !== GameStatus.PLAYING && emotionIntervalRef.current) {
+      console.log('🛑 Game not playing - clearing emotion detection interval')
+      clearInterval(emotionIntervalRef.current)
+      emotionIntervalRef.current = null
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (emotionIntervalRef.current) {
+        clearInterval(emotionIntervalRef.current)
+        emotionIntervalRef.current = null
+        console.log('🧹 Component unmounting - cleared emotion detection interval')
+      }
+    }
+  }, [gameStatus])
 
   return (
     <div className="flex flex-col items-center">

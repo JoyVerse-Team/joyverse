@@ -27,16 +27,6 @@ export default function HomePage() {
     console.log('HomePage - Full auth object:', { user, isAuthenticated, loading });
   }, [isAuthenticated, user, loading]);
 
-  // Force loading to false after 3 seconds if stuck
-  useEffect(() => {
-    if (loading) {
-      const timer = setTimeout(() => {
-        console.log('⚠️ Auth loading timeout - continuing without auth');
-        // Force continue by treating as if loading is false
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [loading]);
   // Navigation handlers
   const handleLogin = () => navigateWithLoadingState('login', '/role-selection')
   const handleSignup = () => navigateWithLoadingState('signup', '/role-selection')
