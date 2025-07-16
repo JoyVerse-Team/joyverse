@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 #Contributors
 1.Akshaya
 2.Kaushik
@@ -7,11 +6,6 @@
 5.Varshith
 6.Shashank
 # Joyverse - Testing Instructions
-## Quick Start (Automatic - Both Servers)
-# Joyverse - Testing Instructions
-=======
-# 🎮 Joyverse - Interactive Learning Platform for Dyslexic Children
->>>>>>> Stashed changes
 
 ## 🌟 Overview
 
@@ -173,33 +167,56 @@ pip install -r requirements.txt
 - Install MongoDB locally or set up MongoDB Atlas
 - Update connection string in backend `.env` file
 
-### Running the Application
+## 🚀 Starting the Application
 
-#### Option 1: Quick Start (Windows)
+### ⚡ Option 1: Quick Start (Windows - Recommended)
+The easiest way to start all services simultaneously:
+
 ```batch
-# Double-click or run
+# Double-click the batch file or run in terminal
 start-joyverse.bat
 ```
 
-#### Option 2: Manual Start
+This will automatically start:
+- **Backend Server** on http://localhost:5000
+- **Frontend Application** on http://localhost:3000  
+- **FastAPI/AI Services** on http://localhost:8000
+
+### 🔧 Option 2: Manual Start (All Platforms)
+Start each service in separate terminals:
+
+#### Terminal 1: Backend Server
 ```bash
-# Terminal 1: Backend
 cd backend
 npm run dev
-
-# Terminal 2: Frontend
-cd frontend
-npm run dev
-
-# Terminal 3: AI Services
-cd fastapi
-python main.py
+# Backend will start on http://localhost:5000
 ```
 
-### Access Points
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:5000
-- **AI Services:** http://localhost:8000
+#### Terminal 2: Frontend Application
+```bash
+cd frontend
+npm run dev
+# Frontend will start on http://localhost:3000
+```
+
+#### Terminal 3: AI/ML Services
+```bash
+cd fastapi
+python main.py
+# FastAPI will start on http://localhost:8000
+```
+
+### 🌐 Access Points Summary
+Once all services are running:
+- **🎮 Main Application:** http://localhost:3000
+- **🔌 Backend API:** http://localhost:5000
+- **🤖 AI Services:** http://localhost:8000
+
+### ✅ Verification
+To verify everything is working:
+1. Open http://localhost:3000 in your browser
+2. You should see the Joyverse homepage
+3. Try signing up or logging in with test credentials
 
 ## 🔐 Authentication & Security
 
@@ -254,12 +271,6 @@ joyverse/
 
 ## 🎮 Game Development
 
-<<<<<<< Updated upstream
-## Testing the Application
-- Go to http://localhost:3000/signup to create a new user account
-- Go to http://localhost:3000/login to login as either user or therapist
-- 
-=======
 ### Game Engine: Phaser.js
 - **Version:** Phaser 3.90.0
 - **Features:** Canvas-based rendering, physics engine, audio support
@@ -395,4 +406,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 **Joyverse** - Transforming learning for dyslexic children through technology, empathy, and innovation. 🌟
->>>>>>> Stashed changes
