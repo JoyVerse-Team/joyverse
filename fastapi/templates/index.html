@@ -1,53 +1,222 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Webcam Emotion Detection</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Detection with Face Landmarks</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border: 2px solid #333;
+            border-radius: 10px;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            font-size: 18px;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
-    <h1>Webcam Emotion Detection</h1>
-    
-    <video id="video" width="640" height="480" autoplay muted style="display: none;"></video>
-    <div id="webcam-placeholder">Click "Start Webcam" to begin</div>
-    <canvas id="canvas" style="display: none;"></canvas>
-    
-    <br><br>
-    
-    <button onclick="startWebcam()" id="start-webcam-btn">Start Webcam</button>
-    <button onclick="captureAndAnalyze()" id="capture-btn" style="display: none;">Capture & Analyze</button>
-    <button onclick="stopWebcam()" id="stop-webcam-btn" style="display: none;">Stop Webcam</button>
-    
-    <div id="loading" style="display: none;">Analyzing...</div>
-    <div id="error" style="display: none; color: red;"></div>
-    
-    <div id="results" style="display: none;">
-        <h3>Results:</h3>
-        <div id="emotion-list"></div>
+    <div class="container">
+        <h1>Real-time Emotion Detection</h1>
+        <p>This demo uses MediaPipe Face Mesh to extract facial landmarks in the browser and sends them to your custom emotion detection model.</p>
+        
+        <div class="controls">
+            <button id="startBtn" onclick="startDetection()">Start Detection</button>
+            <button id="stopBtn" onclick="stopDetection()" disabled>Stop Detection</button>
+        </div>
+        
+        <video id="videoElement" autoplay muted playsinline></video>
+        
+        <div id="result" class="result">
+            Click "Start Detection" to begin...
+        </div>
     </div>
 
     <script>
-        let stream = null;
+        class FaceLandmarkExtractor {
+            constructor() {
+                this.faceMesh = null;
+                this.camera = null;
+                this.videoElement = null;
+                this.isRunning = false;
+            }
 
-        async function startWebcam() {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            async initialize() {
+                // Load MediaPipe Face Mesh
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js';
+                document.head.appendChild(script);
                 
-                const video = document.getElementById('video');
-                const placeholder = document.getElementById('webcam-placeholder');
+                return new Promise((resolve) => {
+                    script.onload = () => {
+                        this.faceMesh = new window.FaceMesh({
+                            locateFile: (file) => {
+                                return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${file}`;
+                            }
+                        });
+
+                        this.faceMesh.setOptions({
+                            maxNumFaces: 1,
+                            refineLandmarks: false,
+                            minDetectionConfidence: 0.5,
+                            minTrackingConfidence: 0.5
+                        });
+
+                        this.faceMesh.onResults(this.onResults.bind(this));
+                        resolve();
+                    };
+                });
+            }
+
+            async setupCamera() {
+                this.videoElement = document.getElementById('videoElement');
                 
-                video.srcObject = stream;
-                video.style.display = 'block';
-                placeholder.style.display = 'none';
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 }
+                });
+
+                this.videoElement.srcObject = stream;
+                return new Promise((resolve) => {
+                    this.videoElement.onloadedmetadata = () => {
+                        resolve(this.videoElement);
+                    };
+                });
+            }
+
+            onResults(results) {
+                if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                    const landmarks = results.multiFaceLandmarks[0];
+                    
+                    // Convert to the format expected by your model (936 coordinates)
+                    const coords = [];
+                    for (const landmark of landmarks) {
+                        coords.push(landmark.x, landmark.y);
+                    }
+                    
+                    // Send to emotion detection (throttled)
+                    this.sendToEmotionDetection(coords);
+                }
+            }
+
+            async sendToEmotionDetection(landmarks) {
+                try {
+                    const response = await fetch('/detect_emotion', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            landmarks: landmarks
+                        })
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        this.onEmotionDetected(result);
+                    } else {
+                        console.error('Error detecting emotion:', response.statusText);
+                    }
+                } catch (error) {
+                    console.error('Error sending landmarks:', error);
+                }
+            }
+
+            onEmotionDetected(result) {
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `
+                    <strong>Emotion:</strong> ${result.emotion}<br>
+                    <strong>Confidence:</strong> ${(result.confidence * 100).toFixed(1)}%
+                `;
+            }
+
+            async start() {
+                if (this.isRunning) return;
                 
-                document.getElementById('start-webcam-btn').style.display = 'none';
-                document.getElementById('capture-btn').style.display = 'inline-block';
-                document.getElementById('stop-webcam-btn').style.display = 'inline-block';
+                this.isRunning = true;
+                await this.initialize();
+                await this.setupCamera();
                 
-                hideResults();
-                hideError();
-            } catch (error) {
-                showError('Could not access webcam: ' + error.message);
+                // Start processing frames
+                const processFrame = async () => {
+                    if (this.isRunning && this.videoElement.readyState === 4) {
+                        await this.faceMesh.send({ image: this.videoElement });
+                    }
+                    if (this.isRunning) {
+                        requestAnimationFrame(processFrame);
+                    }
+                };
+                
+                processFrame();
+            }
+
+            stop() {
+                this.isRunning = false;
+                if (this.videoElement && this.videoElement.srcObject) {
+                    this.videoElement.srcObject.getTracks().forEach(track => track.stop());
+                }
             }
         }
+
+        const detector = new FaceLandmarkExtractor();
+
+        async function startDetection() {
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('result').textContent = 'Starting camera...';
+            
+            try {
+                await detector.start();
+                document.getElementById('result').textContent = 'Detection started! Look at the camera.';
+            } catch (error) {
+                document.getElementById('result').textContent = `Error: ${error.message}`;
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            }
+        }
+
+        function stopDetection() {
+            detector.stop();
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('result').textContent = 'Detection stopped.';
+        }
+    </script>
+</body>
+</html>
 
         function stopWebcam() {
             if (stream) {

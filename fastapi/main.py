@@ -6,9 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 import io
 import base64
-from transformers import pipeline, AutoImageProcessor, AutoModelForImageClassification
 import torch
+import numpy as np
+import cv2
+import mediapipe as mp
+import joblib
 import uvicorn
+from fer_transformer import FERTransformer
 
 app = FastAPI(title="Emotion Detection App", description="Detect emotions from facial expressions")
 
@@ -29,24 +33,23 @@ templates = Jinja2Templates(directory="templates")
 
 # Initialize the emotion detection model
 print("Loading emotion detection model...")
+emotion_model = None
+label_encoder = None
+
 try:
-    # Load the model and processor
-    model_name = "mo-thecreator/vit-Facial-Expression-Recognition"
-    processor = AutoImageProcessor.from_pretrained(model_name)
-    model = AutoModelForImageClassification.from_pretrained(model_name)
+    # Load the custom FER transformer model
+    emotion_model = FERTransformer()
+    emotion_model.load_state_dict(torch.load("best_fer_transformer.pth", map_location=torch.device("cpu")))
+    emotion_model.eval()
     
-    # Create pipeline
-    emotion_pipeline = pipeline(
-        "image-classification",
-        model=model,
-        feature_extractor=processor,
-        device=0 if torch.cuda.is_available() else -1
-    )
+    # Load label encoder
+    label_encoder = joblib.load("label_encoder.pkl")
     
-    print("Model loaded successfully!")
+    print("Custom FER model loaded successfully!")
 except Exception as e:
     print(f"Error loading model: {e}")
-    emotion_pipeline = None
+    emotion_model = None
+    label_encoder = None
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -57,46 +60,41 @@ async def home(request: Request):
 
 @app.post("/detect_emotion")
 async def detect_emotion(request: Request):
-    """Detect emotion from base64 image data - endpoint for game integration"""
+    """Detect emotion from landmark data - endpoint for game integration"""
     try:
-        if emotion_pipeline is None:
+        if emotion_model is None or label_encoder is None:
             print("Error: Model not loaded")
             raise HTTPException(status_code=500, detail="Model not loaded")
         
         # Get JSON data
         data = await request.json()
-        image_data = data.get("image")
+        landmarks_data = data.get("landmarks")
         
-        if not image_data:
-            print("Error: No image data provided")
-            raise HTTPException(status_code=400, detail="No image data provided")
+        if not landmarks_data:
+            print("Error: No landmarks data provided")
+            raise HTTPException(status_code=400, detail="No landmarks data provided")
         
-        # Remove data URL prefix if present
-        if image_data.startswith("data:image"):
-            image_data = image_data.split(",")[1]
+        # Validate landmarks data
+        if not isinstance(landmarks_data, list) or len(landmarks_data) != 936:
+            print(f"Error: Invalid landmarks data. Expected 936 coordinates, got {len(landmarks_data) if isinstance(landmarks_data, list) else 'non-list'}")
+            raise HTTPException(status_code=400, detail="Invalid landmarks data. Expected 936 coordinates (468 landmarks × 2)")
         
-        print("Processing emotion detection...")
+        print("Processing emotion detection from landmarks...")
         
-        # Decode base64 image
-        image_bytes = base64.b64decode(image_data)
-        image = Image.open(io.BytesIO(image_bytes))
-        
-        # Convert to RGB if necessary
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        
-        print(f"Image size: {image.size}")
+        # Convert landmarks to tensor
+        landmarks_tensor = torch.tensor(landmarks_data, dtype=torch.float32).unsqueeze(0)  # Shape: (1, 936)
         
         # Run emotion detection
-        results = emotion_pipeline(image)
-        
-        # Get the top prediction
-        top_prediction = results[0] if results else {"label": "neutral", "score": 0.5}
+        with torch.no_grad():
+            outputs = emotion_model(landmarks_tensor)
+            pred = outputs.argmax(dim=1).item()
+            confidence = torch.softmax(outputs, dim=1).max().item()
+            emotion = label_encoder.inverse_transform([pred])[0]
         
         # Return in the format expected by the frontend
         response = {
-            "emotion": top_prediction["label"].lower(),
-            "confidence": round(top_prediction["score"], 3)
+            "emotion": emotion.lower(),
+            "confidence": round(confidence, 3)
         }
         
         print(f"Detected emotion: {response}")
@@ -114,7 +112,7 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "model_loaded": emotion_pipeline is not None
+        "model_loaded": emotion_model is not None and label_encoder is not None
     }
 
 if __name__ == "__main__":

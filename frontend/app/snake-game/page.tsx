@@ -14,12 +14,13 @@ import { SaveNotification } from "@/components/SaveNotification"
 
 // Emotion to gradient mapping
 const emotionGradients = {
-  'frustration': 'emotion-frustration',
-  'sadness': 'emotion-sadness', 
-  'anger': 'emotion-anger',
+  'disgust': 'emotion-disgust',
+  'sad': 'emotion-sad', 
+  'angry': 'emotion-angry',
   'fear': 'emotion-fear',
   'neutral': 'emotion-neutral',
-  'happy': 'emotion-happy'
+  'happy': 'emotion-happy',
+  'surprise': 'emotion-surprise'
 }
 
 export default function SnakeGamePage() {
@@ -124,7 +125,7 @@ export default function SnakeGamePage() {
   // Handle emotion updates from the game component
   const handleEmotionUpdate = (emotion: string) => {
     console.log(`Received emotion update from game: ${emotion}`)
-    if (emotion in emotionGradients && emotion !== 'surprised') {
+    if (emotion in emotionGradients && emotion !== 'surprise') {
       setBackgroundEmotion(emotion)
     }
   }
@@ -148,8 +149,8 @@ export default function SnakeGamePage() {
       setCurrentEmotion(emotion)
       console.log('💾 Current emotion stored for later use:', emotion.emotion)
       
-      // Only update background if the emotion has a gradient mapping and isn't 'surprised'
-      if (emotion.emotion in emotionGradients && emotion.emotion !== 'surprised') {
+      // Only update background if the emotion has a gradient mapping and isn't 'surprise'
+      if (emotion.emotion in emotionGradients && emotion.emotion !== 'surprise') {
         console.log(`Updating background from ${backgroundEmotion} to ${emotion.emotion}`)
         setBackgroundEmotion(emotion.emotion)
         console.log(`Background emotion updated: ${emotion.emotion}`)
@@ -174,7 +175,7 @@ export default function SnakeGamePage() {
     console.log(`Background emotion changing to: ${backgroundEmotion}`)
     
     // Remove any existing emotion classes
-    const emotionClasses = ['emotion-frustration', 'emotion-sadness', 'emotion-anger', 'emotion-fear', 'emotion-neutral', 'emotion-happy', 'no-emotion-background']
+    const emotionClasses = ['emotion-disgust', 'emotion-sad', 'emotion-angry', 'emotion-fear', 'emotion-neutral', 'emotion-happy', 'emotion-surprise', 'no-emotion-background']
     emotionClasses.forEach(className => {
       document.body.classList.remove(className)
     })
