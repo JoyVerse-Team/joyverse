@@ -121,18 +121,7 @@ export default function ChildSignupPage() {
       }
     } catch (error) {
       console.error('Signup error:', error);
-      // For demo purposes, if backend fails, create a demo user and redirect
-      setMessage('Demo mode: Account created! Redirecting...');
-      const demoUser = {
-        id: 'demo-user-' + Date.now(),
-        name: formData.name,
-        email: formData.email,
-        role: 'child' as const
-      };
-      login(demoUser);
-      
-      // Immediate redirect without delay
-      router.replace('/');
+      setMessage('Signup failed. Please try again.');
     } finally {
       setLoading(false);
     }

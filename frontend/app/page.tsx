@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Sparkles, Heart, Stars, Gamepad2, UserCheck, ChevronDown, Check, Camera, Brain, Gamepad, Smile, Users, Palette, Play, Shield, Zap, Target, BookOpen, Lightbulb } from "lucide-react"
+import { Sparkles, Heart, Stars, Gamepad2, UserCheck, ChevronDown, Check, Camera, Brain, Gamepad, Smile, Users, Palette, Shield, Zap, Target, BookOpen, Lightbulb } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useLoading } from "@/hooks/useLoading"
@@ -13,7 +13,7 @@ export default function HomePage() {
   
   const router = useRouter()
   const { navigateWithLoadingState, isLoading } = useLoading()
-  const { user, isAuthenticated, loading, logout, loginDemo } = useAuth()
+  const { user, isAuthenticated, loading, logout } = useAuth()
 
   console.log('🏠 HomePage - Initial state:', { 
     user: user?.name, 
@@ -166,7 +166,7 @@ export default function HomePage() {
                       </div>
                     ) : (
                       <>
-                        <Play className="w-4 h-4 mr-2" />
+                        <UserCheck className="w-4 h-4 mr-2" />
                         Login
                       </>
                     )}
@@ -249,16 +249,6 @@ export default function HomePage() {
                         <ChevronDown className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
-                  </Button>
-
-                  <Button 
-                    onClick={loginDemo}
-                    variant="outline"
-                    size="lg"
-                    className="group px-8 py-4 text-lg font-bold backdrop-blur-xl bg-white/10 hover:bg-white/20 border-2 border-white/30 hover:border-white/50 text-white rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
-                  >
-                    <Play className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" />
-                    Try Demo
                   </Button>
                 </>
               ) : (
@@ -536,15 +526,6 @@ export default function HomePage() {
                 >
                   <Sparkles className="w-5 h-5 mr-3 group-hover:animate-spin" />
                   Start Your Journey
-                </Button>
-                <Button 
-                  onClick={loginDemo}
-                  variant="outline"
-                  size="lg"
-                  className="group px-8 py-4 text-lg font-bold backdrop-blur-xl bg-white/10 hover:bg-white/20 border-2 border-white/30 hover:border-white/50 text-white rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
-                >
-                  <Play className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" />
-                  Try Demo
                 </Button>
               </div>
             </div>

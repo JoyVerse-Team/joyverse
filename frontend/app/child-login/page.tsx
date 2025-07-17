@@ -91,23 +91,8 @@ export default function ChildLoginPage() {
         setMessage(result.message || 'Login failed');
       }
     } catch (error: any) {
-      console.error('handleSubmit: Backend login error, creating demo user:', error);
-      setMessage('Demo mode: Creating demo account! 🎮');
-      
-      const demoUser = {
-        id: 'demo-' + Date.now(),
-        name: formData.email.split('@')[0],
-        email: formData.email,
-        role: 'child' as const
-      };
-      
-      console.log('Creating demo user and logging in:', demoUser);
-      login(demoUser);
-      
-      setTimeout(() => {
-        console.log('Demo login: Redirecting to homepage...');
-        router.replace('/');
-      }, 100);
+      console.error('handleSubmit: Backend login error:', error);
+      setMessage('Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
