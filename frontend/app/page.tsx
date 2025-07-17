@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Sparkles, Heart, Stars, Gamepad2, UserCheck, ChevronDown, Check, Camera, Brain, Gamepad, Smile, Users, Palette, Play, Shield, Zap, Target, BookOpen, Lightbulb } from "lucide-react"
+import { Sparkles, Heart, Stars, Gamepad2, UserCheck, ChevronDown, Check, Camera, Brain, Gamepad, Smile, Users, Palette, Shield, Zap, Target, BookOpen, Lightbulb } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useLoading } from "@/hooks/useLoading"
@@ -176,7 +176,7 @@ export default function HomePage() {
                       </div>
                     ) : (
                       <>
-                        <Play className="w-4 h-4 mr-2" />
+                        <UserCheck className="w-4 h-4 mr-2" />
                         Login
                       </>
                     )}
