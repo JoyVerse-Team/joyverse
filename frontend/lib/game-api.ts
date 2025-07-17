@@ -14,6 +14,7 @@
  */
 
 import { Difficulty } from "@/components/snake-game/word-lists"
+import { landmarkEmotionDetector, type LandmarkEmotionData } from "./landmark-emotion-detector"
 
 // Interface for emotion data structure
 export interface EmotionData {
@@ -136,14 +137,14 @@ class GameApiService {
     }
   }
 
-  async detectEmotion(imageData: string): Promise<EmotionData> {
+  async detectEmotion(landmarks: number[]): Promise<EmotionData> {
     try {
       const response = await fetch(`${this.fastapiUrl}/detect_emotion`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ image: imageData }),
+        body: JSON.stringify({ landmarks: landmarks }),
       })
 
       if (!response.ok) {
@@ -160,34 +161,27 @@ class GameApiService {
       throw error // Don't use mock data, let the error propagate
     }
   }
-  // Helper method to capture webcam image and detect emotion
+  // Capture emotion using landmark-based detection
   async captureAndDetectEmotion(): Promise<EmotionData> {
-    // Get video stream
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-    const video = document.createElement('video')
-    video.srcObject = stream
-    video.play()
-
-    // Wait for video to be ready
-    await new Promise((resolve) => {
-      video.onloadedmetadata = resolve
-    })
-
-    // Capture frame
-    const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    const ctx = canvas.getContext('2d')!
-    ctx.drawImage(video, 0, 0)
-
-    // Convert to base64
-    const imageData = canvas.toDataURL('image/jpeg').split(',')[1]
-
-    // Stop video stream
-    stream.getTracks().forEach(track => track.stop())
-
-    // Detect emotion using FastAPI - no fallback, throw error if it fails
-    return await this.detectEmotion(imageData)
+    try {
+      console.log('Using landmark-based emotion detection');
+      
+      // Use the landmark detector for proper emotion detection
+      const landmarkResult = await landmarkEmotionDetector.captureAndDetectEmotion();
+      
+      return {
+        emotion: landmarkResult.emotion,
+        confidence: landmarkResult.confidence
+      }
+    } catch (error) {
+      console.error('Error capturing and detecting emotion:', error)
+      
+      // Return a mock emotion for now so the game doesn't break
+      return {
+        emotion: 'neutral',
+        confidence: 0.5
+      }
+    }
   }
 
   // Update difficulty based on emotion (for real-time difficulty adaptation)

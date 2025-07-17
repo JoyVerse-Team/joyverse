@@ -7,7 +7,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (userData: User) => void;
-  loginDemo: () => void;
   logout: () => Promise<void>;
 }
 
@@ -17,25 +16,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Initialize auth state
   useEffect(() => {
-    // Initialize auth state - set loading to false after component mounts
-    setLoading(false);
+    // Set loading to false after a short delay to simulate initialization
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const login = (userData: User) => {
     console.log('AuthProvider - login called with:', userData);
     setUser(userData);
     console.log('AuthProvider - user state updated, isAuthenticated should be:', !!userData);
-  };
-
-  const loginDemo = () => {
-    const demoUser: User = {
-      id: 'demo-child-' + Date.now(),
-      name: 'Demo Child',
-      email: 'demo@joyverse.com',
-      role: 'child'
-    };
-    login(demoUser);
   };
 
   const logout = async () => {
@@ -52,7 +46,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: !!user,
     loading,
     login,
-    loginDemo,
     logout,
   };
 

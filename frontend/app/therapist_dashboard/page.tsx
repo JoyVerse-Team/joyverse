@@ -14,18 +14,15 @@ import { localDataService, type Therapist, type Student, type GameSession, type 
 
 const getEmotionColor = (emotion: string) => {
   const colors: { [key: string]: string } = {
-    Happy: "bg-green-100 text-green-800",
-    Sad: "bg-blue-100 text-blue-800",
-    Frustrated: "bg-orange-100 text-orange-800",
-    Confident: "bg-emerald-100 text-emerald-800",
-    Excited: "bg-pink-100 text-pink-800",
-    Anxious: "bg-amber-100 text-amber-800",
-    Focused: "bg-cyan-100 text-cyan-800",
-    Overwhelmed: "bg-gray-100 text-gray-800",
-    Curious: "bg-indigo-100 text-indigo-800",
-    Proud: "bg-purple-100 text-purple-800",
+    happy: "bg-green-100 text-green-800",
+    sad: "bg-blue-100 text-blue-800",
+    angry: "bg-red-100 text-red-800",
+    fear: "bg-yellow-100 text-yellow-800",
+    disgust: "bg-orange-100 text-orange-800",
+    surprise: "bg-pink-100 text-pink-800",
+    neutral: "bg-gray-100 text-gray-800",
   }
-  return colors[emotion] || "bg-gray-100 text-gray-800"
+  return colors[emotion.toLowerCase()] || "bg-gray-100 text-gray-800"
 }
 
 const getDifficultyColor = (difficulty: string) => {

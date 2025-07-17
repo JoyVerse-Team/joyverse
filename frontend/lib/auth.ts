@@ -73,7 +73,7 @@ export const loginWithEmail = async (email: string, password: string): Promise<A
 
   } catch (error: any) {
     console.error('loginWithEmail: Network error - backend may be offline:', error);
-    throw error; // Let the caller handle the fallback to demo mode
+    throw error; // Let the caller handle the error
   }
 };
 
@@ -110,7 +110,7 @@ export const signupWithEmail = async (signupData: SignupData): Promise<AuthRespo
 
   } catch (error: any) {
     console.error('signupWithEmail: Network error - backend may be offline:', error);
-    throw error; // Let the caller handle the fallback to demo mode
+    throw error; // Let the caller handle the error
   }
 };
 

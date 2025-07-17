@@ -770,7 +770,7 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
     
     const normalizedEmotion = emotion.toLowerCase();
     
-    if (normalizedEmotion === 'happy' || normalizedEmotion === 'joy') {
+    if (normalizedEmotion === 'happy' || normalizedEmotion === 'surprise') {
       // Increase difficulty by 1 level
       switch (currentDifficulty) {
         case 'level1': newDifficulty = 'level2'; break;
@@ -783,7 +783,7 @@ export function useSnakeGame({ canvasRef, onWordComplete, onLifeLoss, paused }: 
       // Stay at current level
       newDifficulty = currentDifficulty;
     } else {
-      // Decrease difficulty by 1 level (for sad, angry, fear, frustrated, etc.)
+      // Decrease difficulty by 1 level (for sad, angry, fear, disgust, etc.)
       switch (currentDifficulty) {
         case 'level1': newDifficulty = 'level1'; break; // Stay at min
         case 'level2': newDifficulty = 'level1'; break;

@@ -1,19 +1,19 @@
 /* Emotion-based dynamic backgrounds with fluid animations */
-body.emotion-frustration {
+body.emotion-disgust {
   background: linear-gradient(270deg, #71a5a7, #6daf86, #37794e, #42cc80) !important;
   background-size: 800% 800% !important;
   animation: emotionGradient 8s ease infinite !important;
   transition: none !important;
 }
 
-body.emotion-sadness {
+body.emotion-sad {
   background: linear-gradient(270deg, #d4a843, #e8c68a, #ffcc5c, #ffb700) !important;
   background-size: 800% 800% !important;
   animation: emotionGradient 8s ease infinite !important;
   transition: none !important;
 }
 
-body.emotion-anger {
+body.emotion-angry {
   background: linear-gradient(270deg, #8b4545, #a85555, #c66565, #6f2c2c) !important;
   background-size: 800% 800% !important;
   animation: emotionGradient 8s ease infinite !important;
@@ -38,6 +38,13 @@ body.emotion-happy {
   background: linear-gradient(270deg, #4a7a62, #50598b, #a259ac, #8a6414) !important;
   background-size: 800% 800% !important;
   animation: emotionGradient 6s ease infinite !important;
+  transition: none !important;
+}
+
+body.emotion-surprise {
+  background: linear-gradient(270deg, #9c4d97, #b85dac, #d46dc1, #f07dd6) !important;
+  background-size: 800% 800% !important;
+  animation: emotionGradient 8s ease infinite !important;
   transition: none !important;
 }
 

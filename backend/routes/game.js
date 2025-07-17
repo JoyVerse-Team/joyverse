@@ -171,9 +171,7 @@ router.post('/game/emotion', async (req, res) => {
     }
 
     // Validate emotion types
-    const validEmotions = ['happy', 'sad', 'angry', 'fearful', 'surprised', 'disgusted', 'neutral', 
-                          'frustrated', 'excited', 'confident', 'anxious', 'calm', 'focused', 'proud',
-                          'fear', 'sadness', 'anger', 'frustration', 'disgust', 'surprise', 'joy'];
+    const validEmotions = ['happy', 'sad', 'angry', 'fear', 'surprise', 'disgust', 'neutral'];
     const emotionLower = emotion.toLowerCase();
     if (!validEmotions.includes(emotionLower)) {
       console.warn(`Invalid emotion received: ${emotion}. Supported emotions: ${validEmotions.join(', ')}`);
@@ -213,13 +211,13 @@ router.post('/game/emotion', async (req, res) => {
     let nextDifficulty = currentDifficulty;
     let difficultyChanged = false;
 
-    const positiveEmotions = ['happy', 'excited', 'confident', 'proud', 'calm', 'focused', 'joy'];
-    const negativeEmotions = ['sad', 'frustrated', 'angry', 'anxious', 'fearful', 'fear', 'sadness', 'anger', 'frustration'];
+    const positiveEmotions = ['happy', 'surprise'];
+    const negativeEmotions = ['sad', 'angry', 'fear', 'disgust'];
 
     const confidenceThreshold = confidence || 0.5;
 
     if (positiveEmotions.includes(emotionLower)) {
-      // Player seems happy/confident - can handle more challenge
+      // Player seems happy/positive - can handle more challenge
       if (currentDifficulty === 'easy' && confidenceThreshold > 0.7) {
         nextDifficulty = 'medium';
         difficultyChanged = true;
@@ -228,7 +226,7 @@ router.post('/game/emotion', async (req, res) => {
         difficultyChanged = true;
       }
     } else if (negativeEmotions.includes(emotionLower)) {
-      // Player seems frustrated/struggling - reduce challenge
+      // Player seems negative/struggling - reduce challenge
       if (currentDifficulty === 'hard' && confidenceThreshold > 0.6) {
         nextDifficulty = 'medium';
         difficultyChanged = true;
@@ -339,9 +337,7 @@ router.post('/game/update-difficulty', async (req, res) => {
     }
 
     // Validate emotion types according to our supported list
-    const validEmotions = ['happy', 'sad', 'angry', 'fearful', 'surprised', 'disgusted', 'neutral', 
-                          'frustrated', 'excited', 'confident', 'anxious', 'calm', 'focused', 'proud',
-                          'fear', 'sadness', 'anger', 'frustration'];
+    const validEmotions = ['happy', 'sad', 'angry', 'fear', 'surprise', 'disgust', 'neutral'];
     
     const emotionLower = emotion.toLowerCase();
     if (!validEmotions.includes(emotionLower)) {
@@ -364,15 +360,15 @@ router.post('/game/update-difficulty', async (req, res) => {
     const confidenceLevel = confidence || 0.5;
 
     // Emotion-based difficulty adaptation logic
-    const positiveEmotions = ['happy', 'excited', 'confident', 'proud', 'calm', 'focused'];
-    const negativeEmotions = ['sad', 'frustrated', 'angry', 'anxious', 'fearful', 'fear', 'sadness', 'anger', 'frustration'];
+    const positiveEmotions = ['happy', 'surprise'];
+    const negativeEmotions = ['sad', 'angry', 'fear', 'disgust'];
     const neutralEmotions = ['neutral'];
 
     if (positiveEmotions.includes(emotionLower)) {
-      // Player seems happy/confident - can handle more challenge
+      // Player seems happy/positive - can handle more challenge
       difficulty = confidenceLevel > 0.7 ? 'hard' : 'medium';
     } else if (negativeEmotions.includes(emotionLower)) {
-      // Player seems frustrated/struggling - reduce challenge
+      // Player seems negative/struggling - reduce challenge
       difficulty = confidenceLevel > 0.6 ? 'medium' : 'easy';
     } else {
       // Neutral emotions maintain medium difficulty
@@ -497,9 +493,7 @@ router.post('/game/submit-emotion-simple', async (req, res) => {
     await session.save();
 
     // Validate emotion types
-    const validEmotions = ['happy', 'sad', 'angry', 'fearful', 'surprised', 'disgusted', 'neutral', 
-                          'frustrated', 'excited', 'confident', 'anxious', 'calm', 'focused', 'proud',
-                          'fear', 'sadness', 'anger', 'frustration'];
+    const validEmotions = ['happy', 'sad', 'angry', 'fear', 'surprise', 'disgust', 'neutral'];
     
     const emotionLower = emotion.toLowerCase();
     if (!validEmotions.includes(emotionLower)) {
@@ -532,8 +526,8 @@ router.post('/game/submit-emotion-simple', async (req, res) => {
     let nextDifficulty = currentDifficulty;
     let difficultyChanged = false;
 
-    const positiveEmotions = ['happy', 'excited', 'confident', 'proud', 'calm', 'focused'];
-    const negativeEmotions = ['sad', 'frustrated', 'angry', 'anxious', 'fearful', 'fear', 'sadness', 'anger', 'frustration'];
+    const positiveEmotions = ['happy', 'surprise'];
+    const negativeEmotions = ['sad', 'angry', 'fear', 'disgust'];
     const confidenceLevel = confidence || 0.5;
 
     if (positiveEmotions.includes(emotionLower)) {
