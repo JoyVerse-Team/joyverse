@@ -1,15 +1,36 @@
+// Game API Routes - Handles game session management and emotion processing
+// This module provides RESTful endpoints for:
+// 1. Starting game sessions
+// 2. Processing emotion data from games
+// 3. Adapting game difficulty based on emotional state
+// 4. Ending game sessions and collecting analytics
+
 const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const Session = require('../models/Session');
 const User = require('../models/Users');
 
-// Start a new game session
+/**
+ * POST /game/start
+ * Starts a new game session for a user
+ * 
+ * Request Body:
+ * - userId: User ID (can be MongoDB ObjectId or custom PID)
+ * - gameName: Name of the game (optional, defaults to 'snake')
+ * 
+ * Response:
+ * - success: boolean indicating if session was created
+ * - sessionId: MongoDB ObjectId of the created session
+ * - gameName: Name of the game
+ * - message: Success message
+ */
 router.post('/game/start', async (req, res) => {
   try {
+    // Extract userId and gameName from request body
     const { userId, gameName } = req.body;
 
-    // Validate required fields
+    // Validate required fields - userId is mandatory
     if (!userId) {
       return res.status(400).json({ 
         success: false,
@@ -17,14 +38,18 @@ router.post('/game/start', async (req, res) => {
       });
     }
 
-    // Find user by PID or MongoDB ID
+    // Find user by PID (custom identifier) or MongoDB ObjectId
+    // This supports both internal MongoDB IDs and custom user identifiers
     let user = null;
     if (mongoose.Types.ObjectId.isValid(userId)) {
+      // If userId is a valid MongoDB ObjectId, search by _id
       user = await User.findById(userId);
     } else {
+      // If userId is not a valid ObjectId, search by custom PID field
       user = await User.findOne({ pid: userId });
     }
 
+    // Return error if user doesn't exist in database
     if (!user) {
       return res.status(404).json({ 
         success: false,
@@ -32,9 +57,9 @@ router.post('/game/start', async (req, res) => {
       });
     }
 
-    // Validate game type according to schema
-    const validGames = ['snake', 'wordcatcher']; // Add wordcatcher game
-    const gameType = gameName || 'snake';
+    // Validate game type according to schema - only specific games are supported
+    const validGames = ['snake', 'wordcatcher']; // Supported game types
+    const gameType = gameName || 'snake'; // Default to snake game if not specified
     if (gameName && !validGames.includes(gameType)) {
       return res.status(400).json({ 
         success: false,
@@ -42,7 +67,8 @@ router.post('/game/start', async (req, res) => {
       });
     }
 
-    // Close any existing active sessions for this user
+    // Close any existing active sessions for this user to prevent multiple active sessions
+    // This ensures only one game session is active per user at any time
     await Session.updateMany(
       { userId: userId, isActive: true },
       { isActive: false, endTime: new Date() }
@@ -50,15 +76,17 @@ router.post('/game/start', async (req, res) => {
 
     // Create new session according to Session model schema
     const session = new Session({
-      userId: user._id, // Use MongoDB ObjectId
-      gameName: gameName || 'Snake Word Game',
-      roundsPlayed: 0,
-      durationSeconds: 0,
-      emotionSamples: []
+      userId: user._id, // Use MongoDB ObjectId for consistency
+      gameName: gameName || 'Snake Word Game', // Default game name
+      roundsPlayed: 0, // Initialize rounds counter
+      durationSeconds: 0, // Initialize duration counter
+      emotionSamples: [] // Initialize empty emotion samples array
     });
 
+    // Save session to database
     await session.save();
 
+    // Return success response with session details
     res.json({
       success: true,
       sessionId: session._id,
@@ -73,8 +101,30 @@ router.post('/game/start', async (req, res) => {
     });
   }
 });
-  
-// Submit emotion data and get next difficulty
+
+/**
+ * POST /game/emotion
+ * Submit emotion data and get next difficulty level
+ * 
+ * Request Body:
+ * - userId: User ID (MongoDB ObjectId or custom PID)
+ * - sessionId: Session ID (MongoDB ObjectId)
+ * - emotion: Detected emotion (one of 7 basic emotions)
+ * - confidence: Confidence score (0-1)
+ * - word: Current word being processed
+ * - difficulty: Current difficulty level (easy/medium/hard)
+ * 
+ * Response:
+ * - success: boolean indicating if emotion was processed
+ * - next_difficulty: Recommended difficulty for next round
+ * - difficulty_changed: boolean indicating if difficulty was adjusted
+ * - emotion_recorded: The emotion that was recorded
+ * - confidence: The confidence score used
+ * - word_recorded: The word that was recorded
+ * - session_id: The session ID
+ * - total_samples: Total number of emotion samples in session
+ * - message: Status message
+ */
 router.post('/game/emotion', async (req, res) => {
   try {
     const { userId, sessionId, emotion, confidence, word, difficulty } = req.body;

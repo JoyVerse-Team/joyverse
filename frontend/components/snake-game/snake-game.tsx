@@ -8,14 +8,18 @@ import { gameApiService, type EmotionData } from "../../lib/game-api"
 import { Difficulty } from "@/components/snake-game/word-lists"
 import "@/app/fonts.css"
 
+// Props interface for the main Snake Game component
 interface SnakeGameComponentProps {
-  onGameStatusChange?: (status: GameStatus) => void
-  onEmotionUpdate?: (emotion: string) => void
-  onWordComplete?: (word: string) => void
-  onCurrentWordChange?: (word: string) => void
+  onGameStatusChange?: (status: GameStatus) => void // Callback when game status changes
+  onEmotionUpdate?: (emotion: string) => void // Callback when emotion is detected
+  onWordComplete?: (word: string) => void // Callback when word is completed
+  onCurrentWordChange?: (word: string) => void // Callback when current word changes
 }
 
-// Simple dialog component for popups
+/**
+ * Simple dialog component for displaying game popups
+ * Used for pause menu, game over screen, etc.
+ */
 const GameDialog = ({ children, show }: { children: React.ReactNode; show: boolean }) => {
   if (!show) return null;
   return (
@@ -27,7 +31,10 @@ const GameDialog = ({ children, show }: { children: React.ReactNode; show: boole
   );
 };
 
-// Add a retro font dialog for popups with snake mascot
+/**
+ * Enhanced retro-styled dialog with snake mascot
+ * Used for game introduction, tutorial, and special announcements
+ */
 const RetroDialog = ({ children, show, vibrant = false }: { children: React.ReactNode; show: boolean; vibrant?: boolean }) => {
   if (!show) return null;
   return (

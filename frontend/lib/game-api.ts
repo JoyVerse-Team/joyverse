@@ -1,36 +1,60 @@
-// API service for game session management and emotion detection
-// This service communicates with both the Node.js backend (for game logic) 
-// and the FastAPI backend (for emotion detection)
+/**
+ * Game API Service
+ * 
+ * This service handles communication between the frontend and backend services
+ * for game session management and emotion detection. It interfaces with:
+ * 1. Node.js backend (port 5000) - Game logic, session management, difficulty adaptation
+ * 2. FastAPI backend (port 8000) - Emotion detection from facial landmarks
+ * 
+ * The service provides methods for:
+ * - Starting game sessions
+ * - Submitting emotion data
+ * - Detecting emotions from facial landmarks
+ * - Managing game difficulty based on emotional state
+ */
 
 import { Difficulty } from "@/components/snake-game/word-lists"
 
+// Interface for emotion data structure
 export interface EmotionData {
-  emotion: string
-  confidence: number
+  emotion: string // Detected emotion (happy, sad, angry, etc.)
+  confidence: number // Confidence score (0-1)
 }
 
+// Response interface for game start endpoint
 interface StartGameResponse {
-  sessionId: string
-  gameName: string
-  success: boolean
-  message: string
+  sessionId: string // Unique session identifier
+  gameName: string // Name of the game
+  success: boolean // Whether the operation succeeded
+  message: string // Status message
 }
 
+// Response interface for emotion submission endpoint
 interface SubmitEmotionResponse {
-  next_difficulty: string
-  difficulty_changed: boolean
-  message: string
+  next_difficulty: string // Recommended difficulty level
+  difficulty_changed: boolean // Whether difficulty was adjusted
+  message: string // Status message
 }
 
+// Response interface for emotion detection endpoint
 interface EmotionDetectionResponse {
-  emotion: string
-  confidence: number
+  emotion: string // Detected emotion
+  confidence: number // Confidence score
 }
 
+/**
+ * GameApiService class that handles all game-related API calls
+ */
 class GameApiService {
-  private nodeBackendUrl = 'http://localhost:5000'
-  private fastapiUrl = 'http://localhost:8000'
+  // Backend service URLs
+  private nodeBackendUrl = 'http://localhost:5000' // Node.js backend
+  private fastapiUrl = 'http://localhost:8000' // FastAPI backend
 
+  /**
+   * Starts a new game session for a user
+   * @param userId - User identifier
+   * @returns Promise resolving to StartGameResponse
+   */
   async startGame(userId: string): Promise<StartGameResponse> {
     try {
       const response = await fetch(`${this.nodeBackendUrl}/api/game/start`, {

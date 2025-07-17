@@ -1,3 +1,22 @@
+"""
+FastAPI Emotion Detection Service
+
+This service provides emotion detection capabilities for the Joyverse application.
+It uses a pre-trained Vision Transformer (ViT) model to analyze facial expressions
+and classify them into 7 basic emotions: happy, sad, angry, fear, surprise, disgust, neutral.
+
+Features:
+- Real-time emotion detection from base64 encoded images
+- RESTful API endpoints for emotion classification
+- CORS support for cross-origin requests
+- Static file serving for web interface
+- GPU acceleration when available
+
+The service runs on port 8000 and integrates with:
+- Frontend (React/Next.js) for user interface
+- Backend (Node.js) for game logic and session management
+"""
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -10,37 +29,44 @@ from transformers import pipeline, AutoImageProcessor, AutoModelForImageClassifi
 import torch
 import uvicorn
 
-app = FastAPI(title="Emotion Detection App", description="Detect emotions from facial expressions")
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+# Initialize FastAPI application with metadata
+app = FastAPI(
+    title="Emotion Detection App", 
+    description="Detect emotions from facial expressions using Vision Transformer",
+    version="1.0.0"
 )
 
-# Mount static files
+# Configure CORS middleware to allow cross-origin requests
+# This is necessary for the frontend to communicate with this API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific origins like ["http://localhost:3000"]
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
+
+# Mount static files directory for serving assets
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Templates
+# Configure Jinja2 templates for HTML responses
 templates = Jinja2Templates(directory="templates")
 
 # Initialize the emotion detection model
 print("Loading emotion detection model...")
 try:
-    # Load the model and processor
+    # Load the pre-trained Vision Transformer model for facial expression recognition
     model_name = "mo-thecreator/vit-Facial-Expression-Recognition"
     processor = AutoImageProcessor.from_pretrained(model_name)
     model = AutoModelForImageClassification.from_pretrained(model_name)
     
-    # Create pipeline
+    # Create pipeline for emotion classification
+    # Uses GPU if available, otherwise falls back to CPU
     emotion_pipeline = pipeline(
         "image-classification",
         model=model,
         feature_extractor=processor,
-        device=0 if torch.cuda.is_available() else -1
+        device=0 if torch.cuda.is_available() else -1  # 0 for GPU, -1 for CPU
     )
     
     print("Model loaded successfully!")
