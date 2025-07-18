@@ -58,7 +58,7 @@ class GameApiService {
    */
   async startGame(userId: string): Promise<StartGameResponse> {
     try {
-      const response = await fetch(`${this.nodeBackendUrl}/api/game/start`, {
+      const response = await fetch(`${this.nodeBackendUrl}/game/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +86,7 @@ class GameApiService {
     timeTaken: number
   ): Promise<SubmitEmotionResponse> {
     try {
-      const response = await fetch(`${this.nodeBackendUrl}/api/game/emotion`, {
+      const response = await fetch(`${this.nodeBackendUrl}/game/emotion`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ class GameApiService {
         body.durationSeconds = durationSeconds
       }
 
-      const response = await fetch(`${this.nodeBackendUrl}/api/game/end`, {
+      const response = await fetch(`${this.nodeBackendUrl}/game/end`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,7 +187,7 @@ class GameApiService {
   // Update difficulty based on emotion (for real-time difficulty adaptation)
   async updateDifficultyBasedOnEmotion(emotion: string): Promise<{ difficulty: number, difficultyName: string }> {
     try {
-      const response = await fetch(`${this.nodeBackendUrl}/api/game/update-difficulty`, {
+      const response = await fetch(`${this.nodeBackendUrl}/game/update-difficulty`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -218,7 +218,7 @@ class GameApiService {
     roundNumber?: number
   ): Promise<{ sessionId: string, difficulty: number, difficultyName: string }> {
     try {
-      const response = await fetch(`${this.nodeBackendUrl}/api/game/submit-emotion-simple`, {
+      const response = await fetch(`${this.nodeBackendUrl}/game/submit-emotion-simple`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -257,7 +257,7 @@ class GameApiService {
     difficulty: string
   ): Promise<SubmitEmotionResponse> {
     try {
-      const response = await fetch(`${this.nodeBackendUrl}/api/game/emotion`, {
+      const response = await fetch(`${this.nodeBackendUrl}/game/emotion`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -286,7 +286,7 @@ class GameApiService {
   // Get current active session for user
   async getCurrentSession(userId: string): Promise<any> {
     try {
-      const response = await fetch(`${this.nodeBackendUrl}/api/game/current-session/${userId}`)
+      const response = await fetch(`${this.nodeBackendUrl}/game/current-session/${userId}`)
 
       if (!response.ok) {
         throw new Error(`Failed to get current session: ${response.statusText}`)
