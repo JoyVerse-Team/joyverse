@@ -152,7 +152,7 @@ export class LandmarkEmotionDetector {
   }
 
   private async detectEmotionFromLandmarks(landmarks: number[]): Promise<LandmarkEmotionData> {
-    const fastapiUrl = 'http://localhost:8000';
+    const fastapiUrl = process.env.NEXT_PUBLIC_FASTAPI_URL || 'https://osmium05-landmark-emotion.hf.space';
     
     const response = await fetch(`${fastapiUrl}/detect_emotion`, {
       method: 'POST',

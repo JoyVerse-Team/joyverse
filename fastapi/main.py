@@ -40,7 +40,13 @@ app = FastAPI(
 # This is necessary for the frontend to communicate with this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins like ["http://localhost:3000"]
+    allow_origins=[
+        "http://localhost:3000",  # Local development
+        "https://joyverse.vercel.app",  # Production frontend
+        "https://osmium05-landmark-emotion.hf.space",  # Hugging Face Space
+        "https://joyverse-l1wm.onrender.com",  # Backend service
+        "*"  # Allow all origins for testing
+    ],
     allow_credentials=True,
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
@@ -145,4 +151,5 @@ async def health_check():
 
 if __name__ == "__main__":
     print("Starting server")
-    uvicorn.run(app, host="localhost", port=8000, log_level="info")
+    # Use 0.0.0.0 for Hugging Face deployment, localhost for local development
+    uvicorn.run(app, host="0.0.0.0", port=7860, log_level="info")

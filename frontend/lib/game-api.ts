@@ -48,8 +48,8 @@ interface EmotionDetectionResponse {
  */
 class GameApiService {
   // Backend service URLs
-  private nodeBackendUrl = 'http://localhost:5000' // Node.js backend
-  private fastapiUrl = 'http://localhost:8000' // FastAPI backend
+  private nodeBackendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://joyverse-l1wm.onrender.com'
+  private fastapiUrl = process.env.NEXT_PUBLIC_FASTAPI_URL || 'https://osmium05-landmark-emotion.hf.space'
 
   /**
    * Starts a new game session for a user
