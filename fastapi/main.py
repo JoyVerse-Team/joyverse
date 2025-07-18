@@ -2,17 +2,17 @@
 FastAPI Emotion Detection Service
 
 This service provides emotion detection capabilities for the Joyverse application.
-It uses a pre-trained Vision Transformer (ViT) model to analyze facial expressions
+It uses a pre-trained FER Transformer model to analyze facial landmarks
 and classify them into 7 basic emotions: happy, sad, angry, fear, surprise, disgust, neutral.
 
 Features:
-- Real-time emotion detection from base64 encoded images
+- Real-time emotion detection from facial landmarks
 - RESTful API endpoints for emotion classification
 - CORS support for cross-origin requests
 - Static file serving for web interface
-- GPU acceleration when available
+- Lightweight landmark-based processing
 
-The service runs on port 8000 and integrates with:
+The service runs on port 7860 and integrates with:
 - Frontend (React/Next.js) for user interface
 - Backend (Node.js) for game logic and session management
 """
@@ -22,17 +22,20 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from PIL import Image
-import io
-import base64
-from transformers import pipeline, AutoImageProcessor, AutoModelForImageClassification
+from pydantic import BaseModel
 import torch
+import numpy as np
+import joblib
 import uvicorn
+import os
+
+# Import the FER Transformer model
+from fer_transformer import FERTransformer
 
 # Initialize FastAPI application with metadata
 app = FastAPI(
-    title="Emotion Detection App", 
-    description="Detect emotions from facial expressions using Vision Transformer",
+    title="Landmark-based Emotion Detection App", 
+    description="Detect emotions from facial landmarks using FER Transformer",
     version="1.0.0"
 )
 
@@ -52,83 +55,93 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-# Mount static files directory for serving assets
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount static files directory for serving assets (if it exists)
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Configure Jinja2 templates for HTML responses
-templates = Jinja2Templates(directory="templates")
+# Configure Jinja2 templates for HTML responses (if directory exists)
+if os.path.exists("templates"):
+    templates = Jinja2Templates(directory="templates")
+
+# Input format for landmarks
+class LandmarkInput(BaseModel):
+    landmarks: list  # Should be a list of 936 floats (468 landmarks * 2 coordinates)
 
 # Initialize the emotion detection model
-print("Loading emotion detection model...")
+print("Loading FER Transformer model...")
 try:
-    # Load the pre-trained Vision Transformer model for facial expression recognition
-    model_name = "mo-thecreator/vit-Facial-Expression-Recognition"
-    processor = AutoImageProcessor.from_pretrained(model_name)
-    model = AutoModelForImageClassification.from_pretrained(model_name)
+    # Load the pre-trained FER Transformer model for landmark-based emotion recognition
+    model = FERTransformer()
+    model.load_state_dict(torch.load("best_fer_transformer.pth", map_location=torch.device("cpu")))
+    model.eval()
     
-    # Create pipeline for emotion classification
-    # Uses GPU if available, otherwise falls back to CPU
-    emotion_pipeline = pipeline(
-        "image-classification",
-        model=model,
-        feature_extractor=processor,
-        device=0 if torch.cuda.is_available() else -1  # 0 for GPU, -1 for CPU
-    )
+    # Load label encoder
+    label_encoder = joblib.load("label_encoder.pkl")
     
-    print("Model loaded successfully!")
+    print("FER Transformer model loaded successfully!")
 except Exception as e:
     print(f"Error loading model: {e}")
-    emotion_pipeline = None
+    model = None
+    label_encoder = None
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Serve the main HTML page"""
-    return templates.TemplateResponse("index.html", {"request": request})
-
-
+    if os.path.exists("templates"):
+        return templates.TemplateResponse("index.html", {"request": request})
+    else:
+        return HTMLResponse("""
+        <html>
+            <head><title>Landmark-based Emotion Detection</title></head>
+            <body>
+                <h1>Landmark-based Emotion Detection API</h1>
+                <p>This API detects emotions from facial landmarks.</p>
+                <p>Send POST requests to /detect_emotion with landmarks data.</p>
+            </body>
+        </html>
+        """)
 
 @app.post("/detect_emotion")
 async def detect_emotion(request: Request):
-    """Detect emotion from base64 image data - endpoint for game integration"""
+    """Detect emotion from facial landmarks - endpoint for game integration"""
     try:
-        if emotion_pipeline is None:
+        if model is None or label_encoder is None:
             print("Error: Model not loaded")
             raise HTTPException(status_code=500, detail="Model not loaded")
         
         # Get JSON data
         data = await request.json()
-        image_data = data.get("image")
+        landmarks = data.get("landmarks")
         
-        if not image_data:
-            print("Error: No image data provided")
-            raise HTTPException(status_code=400, detail="No image data provided")
+        if not landmarks:
+            print("Error: No landmarks data provided")
+            raise HTTPException(status_code=400, detail="No landmarks data provided")
         
-        # Remove data URL prefix if present
-        if image_data.startswith("data:image"):
-            image_data = image_data.split(",")[1]
+        # Validate landmarks length
+        if len(landmarks) != 936:
+            print(f"Error: Expected 936 landmarks, got {len(landmarks)}")
+            raise HTTPException(status_code=400, detail=f"Expected 936 landmarks, got {len(landmarks)}")
         
-        print("Processing emotion detection...")
+        print(f"Processing emotion detection with {len(landmarks)} landmarks...")
         
-        # Decode base64 image
-        image_bytes = base64.b64decode(image_data)
-        image = Image.open(io.BytesIO(image_bytes))
-        
-        # Convert to RGB if necessary
-        if image.mode != "RGB":
-            image = image.convert("RGB")
-        
-        print(f"Image size: {image.size}")
+        # Convert landmarks to tensor
+        x = torch.tensor(landmarks, dtype=torch.float32).unsqueeze(0)  # Shape: (1, 936)
         
         # Run emotion detection
-        results = emotion_pipeline(image)
-        
-        # Get the top prediction
-        top_prediction = results[0] if results else {"label": "neutral", "score": 0.5}
+        with torch.no_grad():
+            outputs = model(x)
+            # Get prediction probabilities
+            probabilities = torch.softmax(outputs, dim=1)
+            pred = outputs.argmax(dim=1).item()
+            confidence = probabilities[0][pred].item()
+            
+            # Get emotion label
+            emotion = label_encoder.inverse_transform([pred])[0]
         
         # Return in the format expected by the frontend
         response = {
-            "emotion": top_prediction["label"].lower(),
-            "confidence": round(top_prediction["score"], 3)
+            "emotion": emotion.lower(),
+            "confidence": round(confidence, 3)
         }
         
         print(f"Detected emotion: {response}")
@@ -146,10 +159,11 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "model_loaded": emotion_pipeline is not None
+        "model_loaded": model is not None,
+        "model_type": "FER Transformer (Landmark-based)",
+        "expected_input": "936 facial landmarks"
     }
 
 if __name__ == "__main__":
-    print("Starting server")
-    # Use 0.0.0.0 for Hugging Face deployment, localhost for local development
+    print("Starting landmark-based emotion detection server")
     uvicorn.run(app, host="0.0.0.0", port=7860, log_level="info")

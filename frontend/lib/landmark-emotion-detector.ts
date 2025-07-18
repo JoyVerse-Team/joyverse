@@ -37,8 +37,8 @@ export class LandmarkEmotionDetector {
       this.faceMesh.setOptions({
         maxNumFaces: 1,
         refineLandmarks: false,
-        minDetectionConfidence: 0.3, // Lower threshold for better detection
-        minTrackingConfidence: 0.3   // Lower threshold for better tracking
+        minDetectionConfidence: 0.3, // low threshold for better detection
+        minTrackingConfidence: 0.3   // low threshold for better tracking
       });
 
       this.isInitialized = true;
@@ -53,23 +53,31 @@ export class LandmarkEmotionDetector {
     return new Promise((resolve, reject) => {
       // Check if already loaded
       if (window.FaceMesh) {
+        console.log('MediaPipe FaceMesh already loaded');
         resolve();
         return;
       }
 
+      console.log('Loading MediaPipe Face Mesh script...');
       const script = document.createElement('script');
       script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js';
       script.onload = () => {
+        console.log('MediaPipe script loaded, waiting for initialization...');
         // Wait a bit for the script to fully initialize
         setTimeout(() => {
           if (window.FaceMesh) {
+            console.log('MediaPipe FaceMesh available');
             resolve();
           } else {
+            console.error('FaceMesh not available after script load');
             reject(new Error('FaceMesh not available after script load'));
           }
-        }, 100);
+        }, 200); // Increased wait time
       };
-      script.onerror = () => reject(new Error('Failed to load MediaPipe Face Mesh script'));
+      script.onerror = (error) => {
+        console.error('Failed to load MediaPipe script:', error);
+        reject(new Error('Failed to load MediaPipe Face Mesh script'));
+      };
       document.head.appendChild(script);
     });
   }
@@ -211,10 +219,10 @@ export class LandmarkEmotionDetector {
           const coords: number[] = [];
           
           for (const landmark of landmarks) {
-            coords.push(landmark.x, landmark.y);
+            coords.push(landmark.x, landmark.y, landmark.z || 0); // Include z coordinate
           }
           
-          console.log(`Detected ${landmarks.length} face landmarks`);
+          console.log(`Detected ${landmarks.length} face landmarks, total coords: ${coords.length}`);
           resolve(coords);
         } else {
           console.warn('No face landmarks detected in frame');
@@ -236,25 +244,36 @@ export class LandmarkEmotionDetector {
   private async detectEmotionFromLandmarks(landmarks: number[]): Promise<LandmarkEmotionData> {
     const fastapiUrl = process.env.NEXT_PUBLIC_FASTAPI_URL || 'https://osmium05-landmark-emotion.hf.space';
     
-    const response = await fetch(`${fastapiUrl}/detect_emotion`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        landmarks: landmarks
-      })
-    });
+    console.log(`Sending ${landmarks.length} coordinates to FastAPI at ${fastapiUrl}`);
+    
+    try {
+      const response = await fetch(`${fastapiUrl}/detect_emotion`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          landmarks: landmarks
+        })
+      });
 
-    if (!response.ok) {
-      throw new Error(`FastAPI server returned ${response.status}: ${response.statusText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`FastAPI error ${response.status}:`, errorText);
+        throw new Error(`FastAPI server returned ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('FastAPI response:', result);
+      
+      return {
+        emotion: result.emotion,
+        confidence: result.confidence || 0
+      };
+    } catch (error) {
+      console.error('Error calling FastAPI:', error);
+      throw error;
     }
-
-    const result = await response.json();
-    return {
-      emotion: result.emotion,
-      confidence: result.confidence
-    };
   }
 
   private cleanup(): void {
@@ -297,17 +316,22 @@ export class LandmarkEmotionDetector {
       videoElement.style.border = '2px solid red';
       document.body.appendChild(videoElement);
       
+      console.log('Testing face detection with video element ready');
+      
       const landmarks = await this.extractLandmarks(videoElement);
       
       // Remove video from DOM
       document.body.removeChild(videoElement);
       
       if (landmarks) {
+        console.log(`Test successful: ${landmarks.length} coordinates extracted`);
         return { success: true, landmarks };
       } else {
+        console.log('Test failed: No face detected');
         return { success: false, error: 'No face detected' };
       }
     } catch (error) {
+      console.error('Test error:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     } finally {
       this.cleanup();

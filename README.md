@@ -131,6 +131,10 @@ Joyverse is an innovative educational platform designed specifically for dyslexi
 
 ## 🚀 Quick Start Guide
 
+- To run the project locally use the Testing v1 branch
+- To run the project locally with landmarks model use model change branch
+the main branch is publically deployed at joyverse.vercel.com 
+
 ### Prerequisites
 - **Node.js:** Version 18 or higher
 - **MongoDB:** Local installation or MongoDB Atlas connection
