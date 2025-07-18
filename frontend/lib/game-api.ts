@@ -164,19 +164,34 @@ class GameApiService {
   // Capture emotion using landmark-based detection
   async captureAndDetectEmotion(): Promise<EmotionData> {
     try {
-      console.log('Using landmark-based emotion detection');
+      console.log('Starting emotion detection...');
       
       // Use the landmark detector for proper emotion detection
       const landmarkResult = await landmarkEmotionDetector.captureAndDetectEmotion();
       
+      console.log('Emotion detection successful:', landmarkResult);
       return {
         emotion: landmarkResult.emotion,
         confidence: landmarkResult.confidence
       }
     } catch (error) {
-      console.error('Error capturing and detecting emotion:', error)
+      console.error('Error capturing and detecting emotion:', error);
       
-      // Return a mock emotion for now so the game doesn't break
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('camera') || error.message.includes('Camera')) {
+          throw new Error('Camera access denied. Please allow camera permissions and try again.');
+        }
+        if (error.message.includes('face detected')) {
+          throw new Error('No face detected. Please ensure your face is clearly visible in the camera with good lighting.');
+        }
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          throw new Error('Network error. Please check your internet connection and try again.');
+        }
+      }
+      
+      // For now, return a neutral emotion to prevent game breaking
+      console.warn('Falling back to neutral emotion due to detection error');
       return {
         emotion: 'neutral',
         confidence: 0.5

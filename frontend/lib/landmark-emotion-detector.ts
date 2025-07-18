@@ -37,11 +37,12 @@ export class LandmarkEmotionDetector {
       this.faceMesh.setOptions({
         maxNumFaces: 1,
         refineLandmarks: false,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
+        minDetectionConfidence: 0.3, // Lower threshold for better detection
+        minTrackingConfidence: 0.3   // Lower threshold for better tracking
       });
 
       this.isInitialized = true;
+      console.log('MediaPipe Face Mesh initialized successfully');
     } catch (error) {
       console.error('Failed to initialize MediaPipe Face Mesh:', error);
       throw new Error('Failed to initialize face detection. Please check your internet connection.');
@@ -78,21 +79,58 @@ export class LandmarkEmotionDetector {
       return this.videoElement;
     }
 
-    this.stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 640, height: 480 }
-    });
+    try {
+      console.log('Requesting camera access...');
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          width: { ideal: 640 }, 
+          height: { ideal: 480 },
+          facingMode: 'user' // Use front camera
+        }
+      });
 
-    this.videoElement = document.createElement('video');
-    this.videoElement.srcObject = this.stream;
-    this.videoElement.autoplay = true;
-    this.videoElement.muted = true;
-    this.videoElement.playsInline = true;
+      this.videoElement = document.createElement('video');
+      this.videoElement.srcObject = this.stream;
+      this.videoElement.autoplay = true;
+      this.videoElement.muted = true;
+      this.videoElement.playsInline = true;
 
-    await new Promise<void>((resolve) => {
-      this.videoElement!.onloadedmetadata = () => resolve();
-    });
+      await new Promise<void>((resolve, reject) => {
+        this.videoElement!.onloadedmetadata = () => {
+          console.log('Video metadata loaded:', {
+            width: this.videoElement!.videoWidth,
+            height: this.videoElement!.videoHeight,
+            readyState: this.videoElement!.readyState
+          });
+          resolve();
+        };
+        
+        this.videoElement!.onerror = (error) => {
+          console.error('Video error:', error);
+          reject(new Error('Failed to load video stream'));
+        };
+        
+        // Timeout after 10 seconds
+        setTimeout(() => {
+          reject(new Error('Video stream timeout'));
+        }, 10000);
+      });
 
-    return this.videoElement;
+      // Wait for video to actually start playing
+      await new Promise<void>((resolve) => {
+        if (this.videoElement!.readyState >= 2) {
+          resolve();
+        } else {
+          this.videoElement!.addEventListener('loadeddata', () => resolve(), { once: true });
+        }
+      });
+
+      console.log('Video stream started successfully');
+      return this.videoElement;
+    } catch (error) {
+      console.error('Failed to start video stream:', error);
+      throw new Error('Failed to access camera. Please ensure camera permissions are granted.');
+    }
   }
 
   async captureAndDetectEmotion(): Promise<LandmarkEmotionData> {
@@ -107,18 +145,37 @@ export class LandmarkEmotionDetector {
     this.isProcessing = true;
 
     try {
+      console.log('Starting emotion detection...');
       const videoElement = await this.startVideoStream();
       
-      // Extract landmarks from current video frame
-      const landmarks = await this.extractLandmarks(videoElement);
+      // Try multiple times to extract landmarks
+      let landmarks: number[] | null = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (landmarks === null && attempts < maxAttempts) {
+        attempts++;
+        console.log(`Attempt ${attempts}/${maxAttempts} to detect face...`);
+        
+        // Wait a bit between attempts
+        if (attempts > 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        landmarks = await this.extractLandmarks(videoElement);
+      }
       
       if (!landmarks) {
-        throw new Error('No face detected or could not extract landmarks');
+        console.error('Face detection failed after all attempts');
+        throw new Error('No face detected or could not extract landmarks. Please ensure your face is clearly visible in the camera.');
       }
 
+      console.log('Face landmarks detected, sending to emotion detection...');
+      
       // Send landmarks to FastAPI backend
       const emotion = await this.detectEmotionFromLandmarks(landmarks);
       
+      console.log('Emotion detection completed:', emotion);
       return emotion;
     } finally {
       this.isProcessing = false;
@@ -131,8 +188,24 @@ export class LandmarkEmotionDetector {
       throw new Error('FaceMesh not initialized');
     }
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      let resolved = false;
+      
+      // Set up timeout to avoid hanging
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          console.warn('Face detection timed out');
+          resolve(null);
+        }
+      }, 5000); // 5 second timeout
+
       this.faceMesh!.onResults((results: any) => {
+        if (resolved) return;
+        
+        clearTimeout(timeout);
+        resolved = true;
+        
         if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
           const landmarks = results.multiFaceLandmarks[0];
           const coords: number[] = [];
@@ -141,13 +214,22 @@ export class LandmarkEmotionDetector {
             coords.push(landmark.x, landmark.y);
           }
           
+          console.log(`Detected ${landmarks.length} face landmarks`);
           resolve(coords);
         } else {
+          console.warn('No face landmarks detected in frame');
           resolve(null);
         }
       });
 
-      this.faceMesh!.send({ image: videoElement });
+      // Make sure video is ready and playing
+      if (videoElement.readyState >= 2) {
+        this.faceMesh!.send({ image: videoElement });
+      } else {
+        videoElement.addEventListener('loadeddata', () => {
+          this.faceMesh!.send({ image: videoElement });
+        }, { once: true });
+      }
     });
   }
 
@@ -183,6 +265,52 @@ export class LandmarkEmotionDetector {
     if (this.videoElement) {
       this.videoElement.srcObject = null;
       this.videoElement = null;
+    }
+  }
+
+  // Debug function to test camera access
+  async testCameraAccess(): Promise<boolean> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      console.log('Camera access successful');
+      stream.getTracks().forEach(track => track.stop());
+      return true;
+    } catch (error) {
+      console.error('Camera access failed:', error);
+      return false;
+    }
+  }
+
+  // Debug function to test face detection
+  async testFaceDetection(): Promise<{ success: boolean, landmarks?: number[], error?: string }> {
+    try {
+      await this.initialize();
+      const videoElement = await this.startVideoStream();
+      
+      // Add video to DOM temporarily for debugging
+      videoElement.style.position = 'fixed';
+      videoElement.style.top = '10px';
+      videoElement.style.right = '10px';
+      videoElement.style.width = '200px';
+      videoElement.style.height = '150px';
+      videoElement.style.zIndex = '9999';
+      videoElement.style.border = '2px solid red';
+      document.body.appendChild(videoElement);
+      
+      const landmarks = await this.extractLandmarks(videoElement);
+      
+      // Remove video from DOM
+      document.body.removeChild(videoElement);
+      
+      if (landmarks) {
+        return { success: true, landmarks };
+      } else {
+        return { success: false, error: 'No face detected' };
+      }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    } finally {
+      this.cleanup();
     }
   }
 
