@@ -1,7 +1,5 @@
 "use client"
 import React from 'react';
-import { useAuth } from '@/components/auth-provider';
-import ProtectedRoute from '@/components/protected-route';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Gamepad2, Sparkles, Trophy, Star, ArrowLeft, Target, Heart, Users, Play, Zap, Brain } from 'lucide-react';
@@ -41,12 +39,10 @@ const games = [
 ];
 
 export default function GamesPage() {
-  const { user } = useAuth();
   const router = useRouter();
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden">
         {/* Dark Glass Morphic Background */}
         <div className="absolute inset-0">
           {/* Base dark gradient - matching other pages */}
@@ -108,7 +104,7 @@ export default function GamesPage() {
                      }}>
                   <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
                   <Users className="w-5 h-5 text-cyan-300" />
-                  <span className="font-bold text-white drop-shadow-lg">Welcome, {user?.name}!</span>
+                  <span className="font-bold text-white drop-shadow-lg">Welcome, Player!</span>
                 </div>
                 <Button
                   onClick={() => router.push('/')}
@@ -373,6 +369,5 @@ export default function GamesPage() {
           </div>
         </main>
       </div>
-    </ProtectedRoute>
   );
 }
